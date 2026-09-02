@@ -30,15 +30,14 @@ export default function InvoiceModal({ isOpen, onClose, session, product }) {
     setIsPaying(true);
 
     const runCheckout = () => {
+      const isRealOrder = session.razorpay_order_id && !session.razorpay_order_id.startsWith('order_sim_') && !session.razorpay_order_id.startsWith('order_err_');
       const options = {
         key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_TX83aNPfLyFFKW',
-        amount: Math.min(totalAmount, 500000) * 100, // in paise (capped for sandbox checkout)
+        amount: totalAmount * 100, // in paise (matching backend order total)
         currency: 'INR',
         name: 'Parlay B2B Wholesale Direct',
         description: `Wholesale Order: ${product?.name || session.product_id} (${quantity} units)`,
-        order_id: session.razorpay_order_id && !session.razorpay_order_id.startsWith('order_sim_') && !session.razorpay_order_id.startsWith('order_err_')
-          ? session.razorpay_order_id
-          : undefined,
+        order_id: isRealOrder ? session.razorpay_order_id : undefined,
         handler: async function (response) {
           toast.loading('Verifying HMAC signature with backend...', { id: 'rzp-verify' });
           try {

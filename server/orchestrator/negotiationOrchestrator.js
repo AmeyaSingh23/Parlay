@@ -33,21 +33,24 @@ async function createRazorpayOrderForDeal(session, finalPrice, quantity) {
       return `order_sim_${Date.now()}`;
     }
 
-    const totalInr = Math.round(finalPrice * quantity);
+    const subtotal = Math.round(finalPrice * quantity);
+    const totalInr = Math.round(subtotal * 1.18); // Total including 18% GST
     const options = {
       amount: totalInr * 100, // in paise
       currency: 'INR',
-      receipt: `parlay_${session.session_id.substring(0, 10)}`,
+      receipt: `parlay_${session.session_id.substring(4, 12)}`,
       notes: {
         session_id: session.session_id,
         product_id: session.product_id,
         quantity: quantity,
-        unit_price_inr: finalPrice
+        unit_price_inr: finalPrice,
+        subtotal_inr: subtotal,
+        gst_inr: totalInr - subtotal
       }
     };
 
     const order = await rzp.orders.create(options);
-    console.log(`[Orchestrator] Razorpay test order created: ${order.id} for ₹${totalInr}`);
+    console.log(`[Orchestrator] Real Razorpay test order created: ${order.id} for ₹${totalInr} (with 18% GST)`);
     return order.id;
   } catch (err) {
     console.error('[Orchestrator] Razorpay order creation failed:', err.message);
