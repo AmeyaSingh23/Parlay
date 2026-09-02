@@ -7,7 +7,7 @@ const { firewallCheck } = require('../firewall/firewallCheck');
 const { generateMerchantTurn } = require('../agents/merchantAgent');
 const { generateBuyerTurn } = require('../agents/buyerAgent');
 
-const MAX_ROUNDS = 7;
+const MAX_ROUNDS = 8;
 
 /**
  * Initializes a Razorpay client instance using test credentials.
@@ -151,17 +151,62 @@ class NegotiationOrchestrator {
         };
       }
 
+      // Check buyer's bid against deterministic firewall
+      let buyerFwResult = 'n/a';
+      let buyerFwCheck = null;
+      if (buyerTurn.offered_price !== null && !isNaN(buyerTurn.offered_price)) {
+        buyerFwCheck = await firewallCheck(buyerTurn.offered_price, product.product_id);
+        if (buyerFwCheck.result === 'blocked') {
+          buyerFwResult = 'blocked';
+        }
+      }
+
       const buyerMsg = await NegotiationMessage.create({
         session_id: sessionId,
         sender: 'buyer',
         message: buyerTurn.message,
         proposed_price: buyerTurn.offered_price,
         policy_reason: `Buyer offer for round ${session.rounds_count}`,
-        firewall_result: 'n/a',
+        firewall_result: buyerFwResult,
+        firewall_details: buyerFwCheck && buyerFwResult === 'blocked' ? {
+          live_floor: buyerFwCheck.live_floor,
+          reason: buyerFwCheck.reason
+        } : undefined,
         round: session.rounds_count
       });
 
       this.emitToSession(sessionId, 'negotiation:turn', buyerMsg);
+
+      // Trigger visual Firewall Interception event if buyer bid below floor
+      if (buyerFwResult === 'blocked' && buyerFwCheck) {
+        console.warn(`[Firewall Intercept] Intercepted below-floor buyer bid: ₹${buyerTurn.offered_price} (Floor: ₹${buyerFwCheck.live_floor})`);
+        const fwInterceptMsg = await NegotiationMessage.create({
+          session_id: sessionId,
+          sender: 'firewall',
+          message: `🚨 FIREWALL INTERCEPTION: Buyer proposed ₹${buyerTurn.offered_price}/unit, which breaches the merchant's live floor boundary (₹${buyerFwCheck.live_floor}). Deterministic policy forbids transactions below this limit.`,
+          proposed_price: buyerTurn.offered_price,
+          policy_reason: 'FIREWALL_BLOCKED_BELOW_FLOOR',
+          firewall_result: 'blocked',
+          firewall_details: {
+            live_floor: buyerFwCheck.live_floor,
+            reason: buyerFwCheck.reason
+          },
+          round: session.rounds_count
+        });
+        this.emitToSession(sessionId, 'negotiation:firewall', fwInterceptMsg);
+
+        firewallFeedback = {
+          blockedPrice: buyerTurn.offered_price,
+          reason: `Buyer bid ₹${buyerTurn.offered_price} was blocked by commercial firewall (Floor: ₹${buyerFwCheck.live_floor}). Propose a sustainable price.`,
+          liveFloor: buyerFwCheck.live_floor
+        };
+
+        // If Adversarial Floor Tester refuses to bid above floor across multiple rounds, quarantine session
+        if (session.buyer_persona === 'floor_tester' && session.rounds_count >= 3) {
+          await this.terminateSession(session, 'blocked_by_firewall', `Adversarial Floor Tester repeatedly breached live floor threshold (₹${buyerFwCheck.live_floor}). Session quarantined by deterministic firewall.`);
+          return;
+        }
+      }
 
       // Check if buyer explicitly accepted merchant's price
       if (buyerTurn.action === 'deal_closed' && buyerTurn.offered_price) {
@@ -182,9 +227,34 @@ class NegotiationOrchestrator {
         }
       }
 
+      // Walk-away Retention Protocol (triggers HITL when buyer threatens no_deal)
       if (buyerTurn.action === 'no_deal') {
-        await this.terminateSession(session, 'no_deal', 'Buyer walked away from negotiation.');
-        return;
+        if (product.negotiable && session.rounds_count >= 3 && !session.hitl_action) {
+          const retentionPrice = Math.max(product.floor_price, Math.round(product.floor_price * 1.03));
+          console.log(`[Orchestrator] Walk-away Retention triggered for ${session.session_id} at ₹${retentionPrice}`);
+
+          const retentionMsg = await NegotiationMessage.create({
+            session_id: sessionId,
+            sender: 'merchant',
+            message: `Before you walk away — we value long-term enterprise procurement relationships. For an order of ${session.quantity} ${product.unit || 'units'}, our executive pricing desk can authorize a one-time retention concession at ₹${retentionPrice}/unit (subject to immediate management approval).`,
+            proposed_price: retentionPrice,
+            policy_reason: `WALKAWAY_RETENTION_PROTOCOL: Executive floor discount ₹${retentionPrice} to retain bulk client. Escalating to Human Merchant review.`,
+            firewall_result: 'pass',
+            round: session.rounds_count
+          });
+          this.emitToSession(sessionId, 'negotiation:turn', retentionMsg);
+
+          await this.pauseForHitl(
+            session,
+            retentionPrice,
+            `Executive walk-away retention discount at ₹${retentionPrice}/unit (Floor: ₹${product.floor_price}). Client threatened order withdrawal — Requires Merchant approval.`,
+            'merchant_retention'
+          );
+          return;
+        } else {
+          await this.terminateSession(session, 'no_deal', 'Buyer walked away from negotiation.');
+          return;
+        }
       }
 
       // Small delay for natural pacing

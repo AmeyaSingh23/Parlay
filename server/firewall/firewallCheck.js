@@ -51,7 +51,7 @@ async function firewallCheck(proposedPrice, productId, customHitlMarginPct) {
 
   const hitlMarginPct = customHitlMarginPct !== undefined
     ? Number(customHitlMarginPct)
-    : Number(process.env.HITL_MARGIN_PCT || 0.05);
+    : Number(process.env.HITL_MARGIN_PCT || 0.08);
 
   // Hard floor threshold: price strictly below floor is BLOCKED immediately
   if (proposed < liveFloor) {

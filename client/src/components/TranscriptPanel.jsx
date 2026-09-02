@@ -68,7 +68,7 @@ export default function TranscriptPanel({
           <div className="text-right font-mono">
             <span className="text-[8px] uppercase text-slate-400 block">Round</span>
             <span className="text-xs font-bold text-slate-200">
-              {session.rounds_count || 1} / 7
+              {session.rounds_count || 1} / 8
             </span>
           </div>
         )}
