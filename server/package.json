@@ -1,0 +1,37 @@
+{
+  "name": "parlay-server",
+  "version": "1.0.0",
+  "description": "Parlay - B2B Negotiated, Firewall-Bounded Pricing Agent Backend",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "seed": "node seed.js",
+    "test:firewall": "node firewall/firewallCheck.test.js"
+  },
+  "keywords": [
+    "ai",
+    "negotiation",
+    "razorpay",
+    "agentic-commerce",
+    "b2b"
+  ],
+  "author": "Ameya Singh",
+  "license": "ISC",
+  "dependencies": {
+    "@google/generative-ai": "^0.24.0",
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.9.5",
+    "node-cron": "^3.0.3",
+    "razorpay": "^2.9.5",
+    "socket.io": "^4.8.1",
+    "uuid": "^11.0.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.9"
+  }
+}
