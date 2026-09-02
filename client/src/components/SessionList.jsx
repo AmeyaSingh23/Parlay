@@ -4,6 +4,7 @@ import {
   ChevronRight,
   RefreshCw
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 export default function SessionList({
   sessions,
@@ -14,6 +15,14 @@ export default function SessionList({
   onRejectHitl
 }) {
   const [filter, setFilter] = useState('all');
+  const [isRotating, setIsRotating] = useState(false);
+
+  const handleRefreshClick = () => {
+    setIsRotating(true);
+    if (onRefresh) onRefresh();
+    toast.success('Audit ledger refreshed', { id: 'audit-refresh', duration: 1500 });
+    setTimeout(() => setIsRotating(false), 600);
+  };
 
   const filtered = (sessions || []).filter(s => {
     if (filter === 'all') return true;
@@ -51,11 +60,11 @@ export default function SessionList({
           </p>
         </div>
         <button
-          onClick={onRefresh}
-          className="p-1 rounded text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+          onClick={handleRefreshClick}
+          className="p-1 rounded text-slate-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
           title="Refresh session history"
         >
-          <RefreshCw className="w-3 h-3" />
+          <RefreshCw className={`w-3.5 h-3.5 transition-transform ${isRotating ? 'animate-spin' : ''}`} />
         </button>
       </div>
 
@@ -71,7 +80,7 @@ export default function SessionList({
           <button
             key={tab.key}
             onClick={() => setFilter(tab.key)}
-            className={`px-2 py-0.5 rounded transition-colors whitespace-nowrap ${
+            className={`px-2 py-0.5 rounded transition-colors whitespace-nowrap cursor-pointer ${
               filter === tab.key
                 ? 'bg-white text-slate-950 font-bold'
                 : 'text-slate-400 hover:text-white hover:bg-white/5'

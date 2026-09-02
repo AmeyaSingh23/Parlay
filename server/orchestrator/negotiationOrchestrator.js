@@ -364,6 +364,25 @@ class NegotiationOrchestrator {
 
     const rzpOrderId = await createRazorpayOrderForDeal(session, finalPrice, session.quantity);
 
+    // Atomically decrement stock level in inventory
+    const updatedProduct = await MerchantInventoryItem.findOneAndUpdate(
+      { product_id: session.product_id },
+      { $inc: { stock_level: -session.quantity } },
+      { new: true }
+    );
+
+    if (updatedProduct) {
+      // Ensure stock never drops below 0 in DB
+      if (updatedProduct.stock_level < 0) {
+        updatedProduct.stock_level = 0;
+        await updatedProduct.save();
+      }
+      if (this.io) {
+        this.io.emit('inventory:updated', updatedProduct);
+      }
+      console.log(`[Orchestrator] Decremented stock for ${updatedProduct.product_id}. Remaining stock: ${updatedProduct.stock_level}`);
+    }
+
     session.status = 'deal_closed';
     session.final_price = finalPrice;
     session.floor_price_snapshot = liveProduct.floor_price;
