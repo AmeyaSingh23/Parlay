@@ -131,13 +131,23 @@ class NegotiationOrchestrator {
       // -------------------------------------------------------------
       // TURN 1: BUYER AGENT
       // -------------------------------------------------------------
-      const buyerTurn = await generateBuyerTurn({
-        product,
-        quantity: session.quantity,
-        buyerPersona: session.buyer_persona,
-        messages,
-        currentRound: session.rounds_count
-      });
+      let buyerTurn;
+      try {
+        buyerTurn = await generateBuyerTurn({
+          product,
+          quantity: session.quantity,
+          buyerPersona: session.buyer_persona,
+          messages,
+          currentRound: session.rounds_count
+        });
+      } catch (err) {
+        console.error(`[Orchestrator] Buyer turn generation error in Round ${currentRound}:`, err.message);
+        buyerTurn = {
+          message: `Given our commitment for ${session.quantity} units, we require a competitive rate closer to our target. What is your best bulk rate for this order?`,
+          offered_price: Math.round(product.list_price * 0.82),
+          action: 'continue'
+        };
+      }
 
       const buyerMsg = await NegotiationMessage.create({
         session_id: sessionId,
@@ -183,13 +193,24 @@ class NegotiationOrchestrator {
       // -------------------------------------------------------------
       const updatedMessages = await NegotiationMessage.find({ session_id: sessionId }).sort({ timestamp: 1 }).lean();
 
-      const merchantTurn = await generateMerchantTurn({
-        product,
-        quantity: session.quantity,
-        messages: updatedMessages,
-        currentRound: session.rounds_count,
-        firewallFeedback
-      });
+      let merchantTurn;
+      try {
+        merchantTurn = await generateMerchantTurn({
+          product,
+          quantity: session.quantity,
+          messages: updatedMessages,
+          currentRound: session.rounds_count,
+          firewallFeedback
+        });
+      } catch (err) {
+        console.error(`[Orchestrator] Merchant turn generation error in Round ${currentRound}:`, err.message);
+        merchantTurn = {
+          message: `We can offer ₹${Math.max(product.floor_price, Math.round(product.target_price * 1.02))} per unit for ${session.quantity} units, complete with manufacturer warranty and priority dispatch.`,
+          proposed_price: Math.max(product.floor_price, Math.round(product.target_price * 1.02)),
+          policy_reason: 'Fallback: Preserving target margin with warranty offer',
+          action: 'continue'
+        };
+      }
 
       // -------------------------------------------------------------
       // FIREWALL INTERCEPTION LAYER (Deterministic Code Validation)
