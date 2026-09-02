@@ -95,30 +95,25 @@ export default function InvoiceModal({ isOpen, onClose, session, product, onPaym
     setIsPaying(true);
 
     try {
-      const chargeAmount = Math.min(totalAmount, 99000);
       let activeOrderId = session.razorpay_order_id;
-      let orderAmountInPaise = totalAmount * 100;
 
-      try {
+      // Ensure we have a valid test order ID from backend
+      if (!activeOrderId || activeOrderId.startsWith('order_err_') || activeOrderId.startsWith('order_sim_') || activeOrderId.startsWith('order_test_')) {
         const orderRes = await axios.post('/payment/create-order', {
-          totalPrice: chargeAmount
+          totalPrice: Math.min(totalAmount, 99000)
         });
         if (orderRes.data && orderRes.data.id) {
           activeOrderId = orderRes.data.id;
-          orderAmountInPaise = orderRes.data.amount || (chargeAmount * 100);
         }
-      } catch (e) {
-        console.warn('Fallback to standard order:', e);
       }
 
       const runCheckout = () => {
+        // When order_id is passed, do NOT pass amount/currency to avoid Razorpay SDK mismatch errors
         const options = {
           key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_TX83aNPfLyFFKW',
-          amount: orderAmountInPaise,
-          currency: 'INR',
-          name: 'Parlay B2B Wholesale Direct',
-          description: `Wholesale Order: ${product?.name || session.product_id} (${quantity} units)`,
           order_id: activeOrderId,
+          name: 'Parlay B2B Wholesale Direct',
+          description: `Commercial Invoice: ${invoiceNo} (${quantity} units)`,
           handler: async function (response) {
             toast.loading('Verifying HMAC signature with backend...', { id: 'rzp-verify' });
             try {

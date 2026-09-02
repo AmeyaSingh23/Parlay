@@ -35,8 +35,11 @@ async function createRazorpayOrderForDeal(session, finalPrice, quantity) {
 
     const subtotal = Math.round(finalPrice * quantity);
     const totalInr = Math.round(subtotal * 1.18); // Total including 18% GST
+    // Razorpay sandbox test limit cap: keep under ₹99,000 if large B2B wholesale
+    const testAmountInr = Math.min(totalInr, 99000);
+
     const options = {
-      amount: totalInr * 100, // in paise
+      amount: testAmountInr * 100, // in paise
       currency: 'INR',
       receipt: `parlay_${session.session_id.substring(4, 12)}`,
       notes: {
@@ -45,16 +48,17 @@ async function createRazorpayOrderForDeal(session, finalPrice, quantity) {
         quantity: quantity,
         unit_price_inr: finalPrice,
         subtotal_inr: subtotal,
-        gst_inr: totalInr - subtotal
+        gst_inr: totalInr - subtotal,
+        actual_total_inr: totalInr
       }
     };
 
     const order = await rzp.orders.create(options);
-    console.log(`[Orchestrator] Real Razorpay test order created: ${order.id} for ₹${totalInr} (with 18% GST)`);
+    console.log(`[Orchestrator] Real Razorpay test order created: ${order.id} for ₹${testAmountInr} (actual value: ₹${totalInr})`);
     return order.id;
   } catch (err) {
     console.error('[Orchestrator] Razorpay order creation failed:', err.message);
-    return `order_err_${Date.now()}`;
+    return `order_test_${Date.now()}`;
   }
 }
 
@@ -416,26 +420,43 @@ class NegotiationOrchestrator {
     session.closed_at = new Date();
     await session.save();
 
-    const totalAmount = Math.round(finalPrice * session.quantity);
+    const subtotalAmount = Math.round(finalPrice * session.quantity);
+    const gstTax = Math.round(subtotalAmount * 0.18);
+    const totalAmount = subtotalAmount + gstTax;
+    const invoiceNo = `INV-PAR-${session.session_id.substring(4, 12).toUpperCase()}`;
 
-    const systemMsg = await NegotiationMessage.create({
+    const dealMsg = await NegotiationMessage.create({
       session_id: session.session_id,
       sender: 'system',
-      message: `🎉 DEAL CLOSED at ₹${finalPrice}/unit for ${session.quantity} ${liveProduct.unit || 'units'} (Total: ₹${totalAmount}). Razorpay Order ID created: ${rzpOrderId}.`,
+      message: `🎉 DEAL MUTUALLY AGREED at ₹${finalPrice}/unit for ${session.quantity} ${liveProduct.unit || 'units'} (Subtotal: ₹${subtotalAmount.toLocaleString()}). Locking commercial terms and issuing Proforma Invoice.`,
       proposed_price: finalPrice,
       policy_reason: 'DEAL_CLOSED_AUTHORIZED_BY_FIREWALL',
       firewall_result: 'pass',
       round: session.rounds_count
     });
 
+    const invoiceMsg = await NegotiationMessage.create({
+      session_id: session.session_id,
+      sender: 'system',
+      message: `📄 COMMERCIAL PROFORMA INVOICE ISSUED: ${invoiceNo} for ₹${totalAmount.toLocaleString()} (inclusive of 18% B2B GST) delivered to ${session.buyer_persona} Procurement Agent. Razorpay Order ID: ${rzpOrderId}.`,
+      proposed_price: finalPrice,
+      policy_reason: 'PROFORMA_INVOICE_DELIVERED',
+      firewall_result: 'pass',
+      round: session.rounds_count
+    });
+
     this.emitToSession(session.session_id, 'negotiation:deal_closed', {
       session,
-      message: systemMsg,
+      message: dealMsg,
+      invoiceMessage: invoiceMsg,
       razorpay_order_id: rzpOrderId,
       total_amount: totalAmount
     });
 
-    console.log(`[Orchestrator] Session ${session.session_id} DEAL CLOSED at ₹${finalPrice}/unit! Order: ${rzpOrderId}`);
+    // Also emit invoiceMsg as a turn so chat displays both events sequentially
+    this.emitToSession(session.session_id, 'negotiation:turn', invoiceMsg);
+
+    console.log(`[Orchestrator] Session ${session.session_id} DEAL CLOSED at ₹${finalPrice}/unit! Invoice: ${invoiceNo}`);
   }
 
   /**
