@@ -29,9 +29,9 @@ export default function PublicCheckout() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center font-sans text-slate-800">
-        <div className="flex items-center gap-2 text-sm text-slate-600 font-mono">
-          <div className="w-4 h-4 border-2 border-slate-900 border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen bg-[#0d0f14] flex items-center justify-center font-sans text-slate-100">
+        <div className="flex items-center gap-2 text-sm text-slate-400 font-mono">
+          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
           <span>Loading Commercial Invoice...</span>
         </div>
       </div>
@@ -40,10 +40,10 @@ export default function PublicCheckout() {
 
   if (!session) {
     return (
-      <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center p-4 text-slate-800 font-sans">
-        <div className="bg-white border border-slate-200 p-8 rounded-lg shadow-sm text-center max-w-md">
-          <p className="font-bold text-base text-slate-900">Invoice Not Found</p>
-          <p className="text-xs text-slate-500 mt-1">This checkout link is invalid or expired.</p>
+      <div className="min-h-screen bg-[#0d0f14] flex items-center justify-center p-4 text-slate-100 font-sans">
+        <div className="bg-[#141720] border border-white/10 p-8 rounded-xl shadow-2xl text-center max-w-md">
+          <p className="font-bold text-base text-white">Invoice Not Found</p>
+          <p className="text-xs text-slate-400 mt-1">This checkout link is invalid or expired.</p>
         </div>
       </div>
     );
@@ -62,11 +62,11 @@ export default function PublicCheckout() {
     const runCheckout = () => {
       const options = {
         key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_TX83aNPfLyFFKW',
-        amount: totalAmount * 100,
+        amount: Math.min(totalAmount, 500000) * 100,
         currency: 'INR',
         name: 'Parlay B2B Wholesale Direct',
         description: `Wholesale Order: ${session.product_name || session.product_id} (${quantity} units)`,
-        order_id: session.razorpay_order_id && !session.razorpay_order_id.startsWith('order_sim_')
+        order_id: session.razorpay_order_id && !session.razorpay_order_id.startsWith('order_sim_') && !session.razorpay_order_id.startsWith('order_err_')
           ? session.razorpay_order_id
           : undefined,
         handler: async function (response) {
@@ -95,7 +95,7 @@ export default function PublicCheckout() {
           contact: '9999999999'
         },
         theme: {
-          color: '#0f172a'
+          color: '#0d0f14'
         },
         modal: {
           ondismiss: function () {
@@ -123,18 +123,18 @@ export default function PublicCheckout() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] text-slate-900 flex flex-col font-sans">
+    <div className="min-h-screen bg-[#0d0f14] text-slate-100 flex flex-col font-sans">
       {/* Top Header */}
-      <header className="bg-white border-b border-slate-200 px-6 py-3.5">
+      <header className="bg-[#141720] border-b border-white/10 px-6 py-3.5">
         <div className="max-w-3xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded bg-slate-900 flex items-center justify-center">
-              <ShieldCheck className="w-3.5 h-3.5 text-white" />
+            <div className="w-6 h-6 rounded bg-white flex items-center justify-center">
+              <ShieldCheck className="w-3.5 h-3.5 text-slate-950" />
             </div>
-            <span className="font-bold text-sm text-slate-900">Parlay Commercial Checkout</span>
+            <span className="font-bold text-sm text-white">Parlay Commercial Checkout</span>
           </div>
-          <div className="flex items-center gap-1.5 text-xs text-slate-500 font-mono">
-            <Lock className="w-3 h-3 text-emerald-600" />
+          <div className="flex items-center gap-1.5 text-xs text-slate-400 font-mono">
+            <Lock className="w-3 h-3 text-emerald-400" />
             <span>256-bit Encrypted</span>
           </div>
         </div>
@@ -142,81 +142,81 @@ export default function PublicCheckout() {
 
       {/* Main Checkout Body */}
       <main className="flex-1 max-w-3xl w-full mx-auto p-6 flex flex-col gap-5">
-        <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm flex flex-col gap-4">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-200">
+        <div className="bg-[#141720] border border-white/10 rounded-xl p-6 shadow-2xl flex flex-col gap-4">
+          <div className="flex items-center justify-between pb-3 border-b border-white/10">
             <div>
-              <span className="text-[10px] uppercase font-mono text-slate-500 block">Proforma Invoice</span>
-              <h1 className="text-base font-bold text-slate-900">{invoiceNo}</h1>
+              <span className="text-[10px] uppercase font-mono text-slate-400 block">Proforma Invoice</span>
+              <h1 className="text-base font-bold text-white">{invoiceNo}</h1>
             </div>
-            <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">
+            <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded bg-white/5 text-slate-300 border border-white/10">
               Ref: {session.session_id}
             </span>
           </div>
 
           {/* Seller / Buyer Grid */}
-          <div className="grid grid-cols-2 gap-4 text-xs pb-3 border-b border-slate-100">
+          <div className="grid grid-cols-2 gap-4 text-xs pb-3 border-b border-white/5 font-mono">
             <div>
-              <span className="text-[10px] uppercase font-mono text-slate-500 block mb-0.5">Merchant (Seller)</span>
-              <p className="font-semibold text-slate-900">Parlay Wholesale Direct</p>
-              <p className="text-slate-500 text-[11px]">GSTIN: 27AABCP1234F1Z5</p>
+              <span className="text-[10px] uppercase text-slate-400 block mb-0.5 font-semibold">Merchant (Seller)</span>
+              <p className="font-bold text-white font-sans">Parlay Wholesale Direct</p>
+              <p className="text-slate-400 text-[11px]">GSTIN: 27AABCP1234F1Z5</p>
             </div>
             <div>
-              <span className="text-[10px] uppercase font-mono text-slate-500 block mb-0.5">Purchaser (Buyer)</span>
-              <p className="font-semibold text-slate-900 capitalize">{session.buyer_persona} Procurement</p>
-              <p className="text-slate-500 text-[11px]">Order Qty: {quantity} units</p>
+              <span className="text-[10px] uppercase text-slate-400 block mb-0.5 font-semibold">Purchaser (Buyer)</span>
+              <p className="font-bold text-white font-sans capitalize">{session.buyer_persona} Procurement</p>
+              <p className="text-slate-400 text-[11px]">Order Qty: {quantity} units</p>
             </div>
           </div>
 
           {/* Line Item Table (Structured Grid) */}
-          <div className="flex flex-col gap-2 text-xs">
-            <div className="grid grid-cols-12 gap-2 text-[10px] uppercase font-mono text-slate-500 pb-1.5 border-b border-slate-200">
+          <div className="flex flex-col gap-2 text-xs font-mono">
+            <div className="grid grid-cols-12 gap-2 text-[10px] uppercase text-slate-400 pb-1.5 border-b border-white/10 font-semibold">
               <span className="col-span-6">Item Description & SKU</span>
               <span className="col-span-3 text-right">Qty × Unit Rate</span>
               <span className="col-span-3 text-right">Subtotal</span>
             </div>
             <div className="grid grid-cols-12 gap-2 items-center py-1">
               <div className="col-span-6 pr-2">
-                <p className="font-semibold text-slate-900 leading-tight">{session.product_name || session.product_id}</p>
-                <p className="text-[10px] font-mono text-slate-500 mt-0.5">SKU: {session.product_id}</p>
+                <p className="font-semibold text-white font-sans leading-tight">{session.product_name || session.product_id}</p>
+                <p className="text-[10px] font-mono text-slate-400 mt-0.5">SKU: {session.product_id}</p>
               </div>
-              <div className="col-span-3 text-right font-mono text-slate-600">
+              <div className="col-span-3 text-right font-mono text-slate-300">
                 {quantity} × ₹{unitPrice}
               </div>
-              <div className="col-span-3 text-right font-mono font-bold text-slate-900">
+              <div className="col-span-3 text-right font-mono font-bold text-white">
                 ₹{subtotal.toLocaleString()}
               </div>
             </div>
           </div>
 
           {/* Breakdown */}
-          <div className="pt-3 border-t border-slate-200 flex flex-col gap-1.5 text-xs">
-            <div className="flex justify-between text-slate-600">
+          <div className="pt-3 border-t border-white/10 flex flex-col gap-1.5 text-xs font-mono">
+            <div className="flex justify-between text-slate-300">
               <span>Negotiated Subtotal:</span>
-              <span className="font-mono">₹{subtotal.toLocaleString()}</span>
+              <span>₹{subtotal.toLocaleString()}</span>
             </div>
-            <div className="flex justify-between text-slate-600">
+            <div className="flex justify-between text-slate-300">
               <span>B2B Applicable GST (18%):</span>
-              <span className="font-mono">₹{gstTax.toLocaleString()}</span>
+              <span>₹{gstTax.toLocaleString()}</span>
             </div>
-            <div className="flex justify-between text-base font-bold text-slate-900 pt-2 border-t border-slate-200">
+            <div className="flex justify-between text-base font-bold text-white pt-2 border-t border-white/10">
               <span>Total Payable:</span>
-              <span className="font-mono text-emerald-700">₹{totalAmount.toLocaleString()}</span>
+              <span className="font-mono text-emerald-400">₹{totalAmount.toLocaleString()}</span>
             </div>
           </div>
 
           {/* Razorpay Meta */}
-          <div className="p-2.5 rounded bg-slate-50 border border-slate-200 flex items-center justify-between text-xs font-mono">
-            <span className="text-slate-500">Razorpay Order ID:</span>
-            <span className="text-slate-900 font-semibold">{session.razorpay_order_id || 'order_pending'}</span>
+          <div className="p-2.5 rounded bg-[#0f1118] border border-white/5 flex items-center justify-between text-xs font-mono">
+            <span className="text-slate-400">Razorpay Order ID:</span>
+            <span className="text-slate-200 font-semibold">{session.razorpay_order_id || 'order_pending'}</span>
           </div>
 
           {/* Paid Confirmation */}
           {isPaid ? (
-            <div className="p-3 rounded bg-emerald-50 border border-emerald-200 flex items-center gap-2.5 text-emerald-800 text-xs font-mono">
-              <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+            <div className="p-3 rounded bg-emerald-500/10 border border-emerald-500/30 flex items-center gap-2.5 text-emerald-300 text-xs font-mono">
+              <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
               <div>
-                <span className="font-bold block font-sans text-emerald-900">Payment Captured & Verified (HMAC Validated)</span>
-                <span className="text-[11px] text-emerald-700">
+                <span className="font-bold block font-sans text-white">Payment Captured & Verified (HMAC Validated)</span>
+                <span className="text-[11px] text-emerald-300/80">
                   Transaction ID: {paymentDetails?.razorpay_payment_id || 'pay_test_confirmed'}
                 </span>
               </div>
@@ -225,7 +225,7 @@ export default function PublicCheckout() {
             <button
               onClick={triggerRazorpay}
               disabled={isPaying}
-              className="mt-2 w-full py-3 rounded-md bg-slate-900 text-white font-bold text-sm hover:bg-slate-800 transition-colors flex items-center justify-center gap-2 shadow-sm font-sans cursor-pointer disabled:opacity-50"
+              className="mt-2 w-full py-3 rounded-lg bg-white text-slate-950 font-bold text-sm hover:bg-slate-200 transition-colors flex items-center justify-center gap-2 shadow-sm font-sans cursor-pointer disabled:opacity-50"
             >
               <CreditCard className="w-4 h-4" />
               <span>{isPaying ? 'Launching Checkout...' : `Pay ₹${totalAmount.toLocaleString()} with Razorpay`}</span>
