@@ -26,23 +26,23 @@ export default function ProductSelector({
   };
 
   return (
-    <div className="panel-card flex flex-col h-full overflow-hidden bg-white">
+    <div className="panel-card flex flex-col h-full overflow-hidden bg-[#141720]">
       {/* Pinned Header */}
-      <div className="p-3 pb-2.5 border-b border-slate-200 shrink-0 bg-white">
-        <h2 className="text-[11px] font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5 font-mono">
-          <Layers className="w-3.5 h-3.5 text-slate-700" />
+      <div className="p-3 pb-2.5 border-b border-white/[0.08] shrink-0 bg-[#141720]">
+        <h2 className="text-[11px] font-bold text-slate-200 uppercase tracking-wider flex items-center gap-1.5 font-mono">
+          <Layers className="w-3.5 h-3.5 text-slate-400" />
           Negotiation Setup
         </h2>
-        <p className="text-[10px] text-slate-500 font-mono mt-0.5">
+        <p className="text-[10px] text-slate-400 font-mono mt-0.5">
           Select target SKU & AI buyer persona
         </p>
       </div>
 
       {/* Scrollable Setup Body */}
-      <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-3 min-h-0 bg-white">
+      <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-3 min-h-0 bg-[#141720]">
         {/* 1. Product SKU Selection */}
         <div className="flex flex-col gap-1">
-          <label className="text-[9px] font-semibold text-slate-600 uppercase tracking-wider font-mono">
+          <label className="text-[9px] font-semibold text-slate-400 uppercase tracking-wider font-mono">
             Catalog SKU
           </label>
           <select
@@ -55,7 +55,7 @@ export default function ProductSelector({
             disabled={isNegotiating}
           >
             {products.map(p => (
-              <option key={p.product_id} value={p.product_id}>
+              <option key={p.product_id} value={p.product_id} className="bg-[#0f1118] text-slate-200">
                 {p.name} ({p.product_id}) — ₹{p.list_price} {p.negotiable ? '' : '[FIXED]'}
               </option>
             ))}
@@ -64,37 +64,37 @@ export default function ProductSelector({
 
         {/* Product Live Pricing Policy Card */}
         {selectedProduct && (
-          <div className="p-2.5 rounded bg-slate-50 border border-slate-200 flex flex-col gap-2">
+          <div className="p-2.5 rounded bg-[#191c26] border border-white/[0.06] flex flex-col gap-2">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-slate-900 truncate max-w-[180px]">
+              <span className="text-[11px] font-semibold text-slate-200 truncate max-w-[180px]">
                 {selectedProduct.name}
               </span>
-              <span className={`text-[9px] font-mono px-1.5 py-0.2 rounded font-semibold ${selectedProduct.negotiable ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-200 text-slate-700 border border-slate-300'}`}>
+              <span className={`text-[9px] font-mono px-1.5 py-0.2 rounded ${selectedProduct.negotiable ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-zinc-800 text-zinc-400 border border-zinc-700'}`}>
                 {selectedProduct.negotiable ? 'Negotiable' : 'Fixed Price'}
               </span>
             </div>
 
             <div className="grid grid-cols-3 gap-1.5 text-center font-mono">
-              <div className="bg-white p-1 rounded border border-slate-200">
-                <span className="text-[8px] uppercase text-slate-500 block">List</span>
-                <span className="text-[11px] font-bold text-slate-800">₹{selectedProduct.list_price}</span>
+              <div className="bg-[#0f1118] p-1 rounded border border-white/5">
+                <span className="text-[8px] uppercase text-slate-400 block">List</span>
+                <span className="text-[11px] font-bold text-slate-200">₹{selectedProduct.list_price}</span>
               </div>
-              <div className="bg-white p-1 rounded border border-slate-200">
-                <span className="text-[8px] uppercase text-slate-600 block">Target</span>
-                <span className="text-[11px] font-bold text-slate-900">₹{selectedProduct.target_price}</span>
+              <div className="bg-[#0f1118] p-1 rounded border border-white/5">
+                <span className="text-[8px] uppercase text-slate-400 block">Target</span>
+                <span className="text-[11px] font-bold text-slate-100">₹{selectedProduct.target_price}</span>
               </div>
-              <div className="bg-white p-1 rounded border border-rose-200 bg-rose-50/30">
-                <span className="text-[8px] uppercase text-rose-600 block font-semibold">Floor</span>
-                <span className="text-[11px] font-bold text-rose-700">₹{selectedProduct.floor_price}</span>
+              <div className="bg-[#0f1118] p-1 rounded border border-rose-500/20">
+                <span className="text-[8px] uppercase text-rose-400/90 block font-semibold">Floor</span>
+                <span className="text-[11px] font-bold text-rose-300">₹{selectedProduct.floor_price}</span>
               </div>
             </div>
 
             {/* Discount Ladder */}
             {selectedProduct.discount_ladder && selectedProduct.discount_ladder.length > 0 && (
-              <div className="text-[9px] text-slate-600 bg-white p-1.5 rounded border border-slate-200 font-mono">
-                <span className="text-slate-500 font-semibold">Tier Limits: </span>
+              <div className="text-[9px] text-slate-400 bg-[#0f1118] p-1.5 rounded border border-white/5 font-mono">
+                <span className="text-slate-400 font-semibold">Tier Limits: </span>
                 {selectedProduct.discount_ladder.map((t, idx) => (
-                  <span key={idx} className="text-slate-700">
+                  <span key={idx} className="text-slate-300">
                     {t.min_qty}+: ≤{t.max_discount_pct}%{idx < selectedProduct.discount_ladder.length - 1 ? ' • ' : ''}
                   </span>
                 ))}
@@ -106,10 +106,10 @@ export default function ProductSelector({
         {/* 2. Order Quantity Input */}
         <div className="flex flex-col gap-1">
           <div className="flex justify-between items-center text-[9px] font-mono">
-            <label className="font-semibold text-slate-600 uppercase tracking-wider">
+            <label className="font-semibold text-slate-400 uppercase tracking-wider">
               Order Quantity ({selectedProduct?.unit || 'units'})
             </label>
-            <span className="text-slate-500">
+            <span className="text-slate-400">
               Stock: {selectedProduct?.stock_level || 0}
             </span>
           </div>
@@ -126,9 +126,9 @@ export default function ProductSelector({
 
         {/* 3. Collapsible Simulated Buyer Persona Selection */}
         <div className="flex flex-col gap-1.5">
-          <label className="text-[9px] font-semibold text-slate-600 uppercase tracking-wider font-mono flex items-center justify-between">
+          <label className="text-[9px] font-semibold text-slate-400 uppercase tracking-wider font-mono flex items-center justify-between">
             <span>Buyer Agent Persona</span>
-            <span className="text-slate-500">4 Scenarios (Click to Expand)</span>
+            <span className="text-slate-400">4 Scenarios (Click to Expand)</span>
           </label>
 
           <div className="flex flex-col gap-1.5">
@@ -142,23 +142,21 @@ export default function ProductSelector({
                   onClick={() => !isNegotiating && onSelectPersona(key)}
                   className={`p-2 rounded border transition-all cursor-pointer ${
                     isSelected
-                      ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
-                      : 'bg-slate-50 text-slate-900 border-slate-200 hover:bg-slate-100 hover:border-slate-300'
+                      ? 'bg-[#1f2433] border-white/20 shadow-xs'
+                      : 'bg-[#191c26] border-white/[0.06] hover:bg-[#1f2330] hover:border-white/10'
                   } ${isNegotiating ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5 min-w-0">
-                      <span className={`text-[11px] font-bold truncate ${isSelected ? 'text-white' : 'text-slate-900'}`}>
-                        {p.displayName}
-                      </span>
-                    </div>
+                    <span className={`text-[11px] font-bold truncate ${isSelected ? 'text-white' : 'text-slate-200'}`}>
+                      {p.displayName}
+                    </span>
 
                     <div className="flex items-center gap-1 shrink-0">
                       {isSelected && <Check className="w-3 h-3 text-white" />}
                       <button
                         type="button"
                         onClick={(e) => toggleExpand(e, key)}
-                        className={`p-0.5 rounded hover:bg-black/10 transition-colors ${isSelected ? 'text-slate-300' : 'text-slate-500'}`}
+                        className={`p-0.5 rounded hover:bg-white/10 transition-colors ${isSelected ? 'text-slate-300' : 'text-slate-400'}`}
                         title={isExpanded ? 'Collapse' : 'Expand full description'}
                       >
                         {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
@@ -168,15 +166,13 @@ export default function ProductSelector({
 
                   {/* Collapsible Full Description */}
                   <div className={`mt-1 text-[10px] leading-relaxed transition-all ${
-                    isSelected ? 'text-slate-200' : 'text-slate-600'
+                    isSelected ? 'text-slate-200' : 'text-slate-400'
                   }`}>
                     {isExpanded ? (
                       <div className="flex flex-col gap-1 pt-0.5">
                         <p>{p.description}</p>
-                        <div className={`p-1.5 rounded text-[9px] font-mono ${
-                          isSelected ? 'bg-black/40 text-slate-300 border border-white/10' : 'bg-white text-slate-600 border border-slate-200'
-                        }`}>
-                          <p><span className="font-semibold">Strategy:</span> {p.opening_strategy}</p>
+                        <div className="p-1.5 rounded text-[9px] font-mono bg-[#0f1118] text-slate-300 border border-white/5">
+                          <p><span className="font-semibold text-slate-200">Strategy:</span> {p.opening_strategy}</p>
                         </div>
                       </div>
                     ) : (
@@ -190,8 +186,8 @@ export default function ProductSelector({
         </div>
       </div>
 
-      {/* Permanently Pinned Solid Dark Primary CTA Button */}
-      <div className="p-3 border-t border-slate-200 bg-white shrink-0">
+      {/* Permanently Pinned Solid Primary CTA Button */}
+      <div className="p-3 border-t border-white/[0.08] bg-[#141720] shrink-0">
         <button
           onClick={onStartNegotiation}
           disabled={isNegotiating || !selectedProduct}
@@ -199,7 +195,7 @@ export default function ProductSelector({
         >
           {isNegotiating ? (
             <>
-              <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              <div className="w-3 h-3 border-2 border-slate-900 border-t-transparent rounded-full animate-spin" />
               <span>Negotiating...</span>
             </>
           ) : (

@@ -39,51 +39,51 @@ export default function FloorPriceModal({ isOpen, onClose, products, onPriceUpda
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 font-sans">
-      <div className="bg-white border border-slate-200 rounded-lg max-w-md w-full p-5 shadow-xl flex flex-col gap-4 text-slate-800">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs p-4 font-sans">
+      <div className="bg-[#141720] border border-white/10 rounded-xl max-w-md w-full p-5 shadow-2xl flex flex-col gap-4 text-slate-200">
         {/* Modal Header */}
-        <div className="flex items-center justify-between pb-2.5 border-b border-slate-200">
+        <div className="flex items-center justify-between pb-2.5 border-b border-white/10">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded bg-slate-100 border border-slate-200 flex items-center justify-center">
-              <Sliders className="w-3.5 h-3.5 text-slate-800" />
+            <div className="w-6 h-6 rounded bg-white/10 border border-white/10 flex items-center justify-center">
+              <Sliders className="w-3.5 h-3.5 text-slate-200" />
             </div>
             <div>
-              <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider font-mono">
+              <h3 className="text-xs font-bold text-white uppercase tracking-wider font-mono">
                 Adjust Product Price Floor
               </h3>
-              <p className="text-[10px] text-slate-500 font-mono">
-                Live inventory floor override (Scenario C)
+              <p className="text-[10px] text-slate-400 font-mono">
+                Live inventory floor override
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-colors"
+            className="p-1 rounded text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Explain Box */}
-        <div className="p-2.5 rounded bg-slate-50 border border-slate-200 text-[11px] text-slate-600 flex items-start gap-2">
-          <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+        <div className="p-2.5 rounded bg-[#191c26] border border-white/5 text-[11px] text-slate-300 flex items-start gap-2">
+          <ShieldAlert className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
           <p>
-            Mutating the floor price updates MongoDB live. The <span className="text-slate-900 font-bold font-mono">Deterministic Firewall</span> immediately enforces the new floor boundary on the very next turn without prompting or retraining the LLM.
+            Mutating the floor price updates MongoDB live. The <span className="text-white font-bold font-mono">Deterministic Firewall</span> immediately enforces the new floor boundary on the very next turn without prompting or retraining the LLM.
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-3 font-mono text-xs">
           <div>
-            <label className="text-[9px] font-semibold text-slate-600 uppercase tracking-wider block mb-1">
+            <label className="text-[9px] font-semibold text-slate-300 uppercase tracking-wider block mb-1">
               Select Product SKU
             </label>
             <select
-              className="input-field cursor-pointer"
+              className="input-field cursor-pointer text-xs"
               value={selectedSku}
               onChange={(e) => setSelectedSku(e.target.value)}
             >
               {products.map(p => (
-                <option key={p.product_id} value={p.product_id}>
+                <option key={p.product_id} value={p.product_id} className="bg-[#0f1118] text-slate-200">
                   {p.name} (Current Floor: ₹{p.floor_price})
                 </option>
               ))}
@@ -91,20 +91,20 @@ export default function FloorPriceModal({ isOpen, onClose, products, onPriceUpda
           </div>
 
           {currentProduct && (
-            <div className="grid grid-cols-2 gap-2 p-2 rounded bg-slate-50 border border-slate-200 text-[11px]">
+            <div className="grid grid-cols-2 gap-2 p-2 rounded bg-[#0f1118] border border-white/5 text-[11px]">
               <div>
-                <span className="text-[9px] text-slate-500 block uppercase font-semibold">List Price</span>
-                <span className="font-bold text-slate-900">₹{currentProduct.list_price}</span>
+                <span className="text-[9px] text-slate-400 block uppercase font-semibold">List Price</span>
+                <span className="font-bold text-slate-200">₹{currentProduct.list_price}</span>
               </div>
               <div>
-                <span className="text-[9px] text-slate-500 block uppercase font-semibold">Current Floor</span>
-                <span className="font-bold text-rose-700">₹{currentProduct.floor_price}</span>
+                <span className="text-[9px] text-slate-400 block uppercase font-semibold">Current Floor</span>
+                <span className="font-bold text-rose-400">₹{currentProduct.floor_price}</span>
               </div>
             </div>
           )}
 
           <div>
-            <label className="text-[9px] font-semibold text-slate-600 uppercase tracking-wider block mb-1">
+            <label className="text-[9px] font-semibold text-slate-300 uppercase tracking-wider block mb-1">
               New Floor Price (₹ INR)
             </label>
             <input
@@ -121,7 +121,7 @@ export default function FloorPriceModal({ isOpen, onClose, products, onPriceUpda
             <button
               type="button"
               onClick={onClose}
-              className="btn btn-secondary flex-1 py-2 text-xs text-slate-700 font-mono"
+              className="btn btn-secondary flex-1 py-2 text-xs text-slate-200 font-mono"
             >
               Cancel
             </button>

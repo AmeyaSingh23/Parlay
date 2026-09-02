@@ -3,25 +3,24 @@
 @tailwind utilities;
 
 /* ==========================================================================
-   PARLAY DESIGN SYSTEM — IMPECCABLE HIGH-CONTRAST LIGHT THEME
-   - Clean slate & crisp white surfaces
-   - High-contrast pitch-black typography and solid dark CTA buttons
-   - Monospace precision for financial rates, SKUs, and order IDs
-   - Strict adherence to pbakaus/impeccable standards
+   PARLAY DESIGN SYSTEM — IMPECCABLE MATTE CHARCOAL (SOFT ON EYES)
+   - Zero eye-straining glaring white, zero neon purple/blue AI slop
+   - Calibrated matte charcoal & warm zinc tones (Linear / Raycast standard)
+   - High-contrast tactile typography and solid crisp action controls
    ========================================================================== */
 
 :root {
-  --bg-app: #f8fafc;
-  --bg-surface: #ffffff;
-  --bg-card: #f8fafc;
-  --bg-card-hover: #f1f5f9;
-  --bg-input: #ffffff;
+  --bg-app: #0d0f14;
+  --bg-surface: #141720;
+  --bg-card: #191c26;
+  --bg-card-hover: #1f2330;
+  --bg-input: #0f1118;
 
-  --border-subtle: #e2e8f0;
-  --border-strong: #cbd5e1;
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.16);
 
-  --text-primary: #09090b;
-  --text-secondary: #334155;
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
   --text-muted: #64748b;
 }
 
@@ -41,10 +40,9 @@ body {
   background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   border-radius: 0.5rem;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
-/* High-Contrast Buttons */
+/* High-Contrast Tactile Buttons */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -61,51 +59,51 @@ body {
 }
 
 .btn-primary {
-  background: #09090b;
-  color: #ffffff;
-  border-color: #09090b;
+  background: #ffffff;
+  color: #0d0f14;
+  border-color: #ffffff;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: #27272a;
-  border-color: #27272a;
+  background: #e2e8f0;
+  border-color: #e2e8f0;
 }
 
 .btn-secondary {
-  background: #ffffff;
-  color: #0f172a;
+  background: rgba(255, 255, 255, 0.04);
+  color: #f8fafc;
   border: 1px solid var(--border-subtle);
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background: #f1f5f9;
+  background: rgba(255, 255, 255, 0.08);
   border-color: var(--border-strong);
 }
 
 .btn-success {
-  background: #059669;
+  background: #10b981;
   color: #ffffff;
 }
 
 .btn-success:hover:not(:disabled) {
-  background: #047857;
+  background: #059669;
 }
 
 .btn-danger {
-  background: #e11d48;
+  background: #f43f5e;
   color: #ffffff;
 }
 
 .btn-danger:hover:not(:disabled) {
-  background: #be123c;
+  background: #e11d48;
 }
 
 .btn:disabled {
-  opacity: 0.45;
+  opacity: 0.4;
   cursor: not-allowed;
 }
 
-/* Status Badges */
+/* Restrained Status Badges */
 .badge {
   display: inline-flex;
   align-items: center;
@@ -120,33 +118,33 @@ body {
 }
 
 .badge-deal-closed {
-  background: #ecfdf5;
-  color: #047857;
-  border: 1px solid #a7f3d0;
+  background: rgba(16, 185, 129, 0.12);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.28);
 }
 
 .badge-blocked {
-  background: #fff1f2;
-  color: #be123c;
-  border: 1px solid #fecdd3;
+  background: rgba(244, 63, 94, 0.12);
+  color: #fb7185;
+  border: 1px solid rgba(244, 63, 94, 0.28);
 }
 
 .badge-pending-hitl {
-  background: #fffbeb;
-  color: #b45309;
-  border: 1px solid #fde68a;
+  background: rgba(245, 158, 11, 0.12);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.28);
 }
 
 .badge-ongoing {
-  background: #f1f5f9;
-  color: #334155;
-  border: 1px solid #cbd5e1;
+  background: rgba(255, 255, 255, 0.08);
+  color: #e2e8f0;
+  border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 .badge-no-deal {
-  background: #f8fafc;
-  color: #64748b;
-  border: 1px solid #e2e8f0;
+  background: rgba(100, 116, 139, 0.12);
+  color: #94a3b8;
+  border: 1px solid rgba(100, 116, 139, 0.22);
 }
 
 /* Input Fields */
@@ -163,7 +161,7 @@ body {
 }
 
 .input-field:focus {
-  border-color: #09090b;
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
 /* Minimal Scrollbars */
@@ -177,12 +175,12 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.15);
+  background: rgba(255, 255, 255, 0.12);
   border-radius: 2px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.25);
+  background: rgba(255, 255, 255, 0.22);
 }
 
 @keyframes slideInUp {
