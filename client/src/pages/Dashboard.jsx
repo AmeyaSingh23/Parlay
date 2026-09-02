@@ -6,6 +6,7 @@ import ProductSelector from '../components/ProductSelector';
 import TranscriptPanel from '../components/TranscriptPanel';
 import SessionList from '../components/SessionList';
 import FloorPriceModal from '../components/FloorPriceModal';
+import InvoiceModal from '../components/InvoiceModal';
 import toast from 'react-hot-toast';
 
 export default function Dashboard() {
@@ -24,6 +25,7 @@ export default function Dashboard() {
 
   const [isNegotiating, setIsNegotiating] = useState(false);
   const [isFloorModalOpen, setIsFloorModalOpen] = useState(false);
+  const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
 
   // Initial Data Fetch
   useEffect(() => {
@@ -74,12 +76,12 @@ export default function Dashboard() {
     };
 
     const handleFirewall = (fwMsg) => {
-      toast.error(`⚠️ FIREWALL BLOCKED proposal of ₹${fwMsg.proposed_price}: Below live floor!`, { duration: 5000 });
+      toast.error(`FIREWALL BLOCKED ₹${fwMsg.proposed_price}: Below live floor!`, { duration: 5000 });
       setMessages((prev) => [...prev, fwMsg]);
     };
 
     const handleHitl = ({ session, message }) => {
-      toast('🛑 Human-in-the-Loop review triggered (near-floor price)', { icon: '⚠️', duration: 6000 });
+      toast('Human-in-the-Loop review required (near floor price)', { icon: '⚠️', duration: 6000 });
       setCurrentSession(session);
       setIsNegotiating(false);
       setMessages((prev) => [...prev, message]);
@@ -87,11 +89,12 @@ export default function Dashboard() {
     };
 
     const handleDealClosed = ({ session, message, razorpay_order_id, total_amount }) => {
-      toast.success(`🎉 Deal Closed! Razorpay Order: ${razorpay_order_id} (₹${total_amount})`, { duration: 6000 });
+      toast.success(`Deal Closed! Razorpay Order: ${razorpay_order_id}`, { duration: 6000 });
       setCurrentSession(session);
       setIsNegotiating(false);
       setMessages((prev) => [...prev, message]);
       fetchSessions();
+      setIsInvoiceModalOpen(true);
     };
 
     const handleStatus = ({ session, message }) => {
@@ -104,7 +107,7 @@ export default function Dashboard() {
     };
 
     const handleInventoryUpdated = (updatedProduct) => {
-      toast(`⚡ Live Floor mutated for ${updatedProduct.name}: ₹${updatedProduct.floor_price}`, { icon: '📊' });
+      toast(`Live Floor updated for ${updatedProduct.name}: ₹${updatedProduct.floor_price}`, { icon: '📊' });
       setProducts((prev) => prev.map(p => p.product_id === updatedProduct.product_id ? updatedProduct : p));
       setSelectedProduct((prev) => prev?.product_id === updatedProduct.product_id ? updatedProduct : prev);
     };
@@ -147,7 +150,7 @@ export default function Dashboard() {
         socket.emit('join:session', newSession.session_id);
       }
 
-      toast.success(`Session started against ${selectedPersona} persona!`);
+      toast.success(`Negotiation started with ${selectedPersona} persona!`);
       fetchSessions();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to start negotiation');
@@ -155,7 +158,7 @@ export default function Dashboard() {
     }
   };
 
-  // Inspect Past Session from Audit Log
+  // Inspect Past Session
   const handleSelectSession = async (sessionId) => {
     try {
       const res = await axios.get(`/negotiation/sessions/${sessionId}`);
@@ -197,14 +200,14 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#090b10]">
+    <div className="h-screen w-screen overflow-hidden flex flex-col bg-[#f8fafc]">
       {/* Top Navbar */}
       <Navbar onOpenFloorModal={() => setIsFloorModalOpen(true)} />
 
-      {/* Main 3-Column Arena Layout */}
-      <main className="flex-1 max-w-[1400px] w-full mx-auto p-4 grid grid-cols-1 lg:grid-cols-12 gap-4 h-[calc(100vh-62px)]">
+      {/* Main 3-Column Arena Layout (Fixed 100vh Shell) */}
+      <main className="flex-1 max-w-[1600px] w-full mx-auto p-3 grid grid-cols-1 lg:grid-cols-12 gap-3 min-h-0 overflow-hidden">
         {/* Left Column: Setup (3 cols) */}
-        <div className="lg:col-span-3 h-full overflow-hidden">
+        <div className="lg:col-span-3 h-full min-h-0 overflow-hidden">
           <ProductSelector
             products={products}
             selectedProduct={selectedProduct}
@@ -219,19 +222,20 @@ export default function Dashboard() {
           />
         </div>
 
-        {/* Center Column: Live Real-Time Arena (6 cols) */}
-        <div className="lg:col-span-6 h-full overflow-hidden">
+        {/* Center Column: Live Arena (6 cols) */}
+        <div className="lg:col-span-6 h-full min-h-0 overflow-hidden">
           <TranscriptPanel
             session={currentSession}
             messages={messages}
             isNegotiating={isNegotiating}
             onApproveHitl={handleApproveHitl}
             onRejectHitl={handleRejectHitl}
+            onOpenInvoice={() => setIsInvoiceModalOpen(true)}
           />
         </div>
 
-        {/* Right Column: Audit Log & Sessions History (3 cols) */}
-        <div className="lg:col-span-3 h-full overflow-hidden">
+        {/* Right Column: Audit Log (3 cols) */}
+        <div className="lg:col-span-3 h-full min-h-0 overflow-hidden">
           <SessionList
             sessions={sessions}
             currentSessionId={currentSession?.session_id}
@@ -243,7 +247,7 @@ export default function Dashboard() {
         </div>
       </main>
 
-      {/* Dynamic Price Mutation Modal for Scenario C */}
+      {/* Floor Price Override Modal */}
       <FloorPriceModal
         isOpen={isFloorModalOpen}
         onClose={() => setIsFloorModalOpen(false)}
@@ -254,6 +258,14 @@ export default function Dashboard() {
             setSelectedProduct(updated);
           }
         }}
+      />
+
+      {/* B2B Commercial Proforma Invoice & Hosted Checkout Modal */}
+      <InvoiceModal
+        isOpen={isInvoiceModalOpen}
+        onClose={() => setIsInvoiceModalOpen(false)}
+        session={currentSession}
+        product={products.find(p => p.product_id === currentSession?.product_id)}
       />
     </div>
   );

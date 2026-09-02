@@ -6,6 +6,7 @@ import { SocketProvider } from './context/SocketContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
+import PublicCheckout from './pages/PublicCheckout';
 
 export default function App() {
   return (
@@ -16,11 +17,12 @@ export default function App() {
             position="top-right"
             toastOptions={{
               style: {
-                background: '#121626',
-                color: '#f1f5f9',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
+                background: '#ffffff',
+                color: '#0f172a',
+                border: '1px solid #e2e8f0',
                 fontFamily: 'Inter, sans-serif',
-                fontSize: '13px'
+                fontSize: '13px',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.06)'
               },
               success: {
                 iconTheme: {
@@ -46,6 +48,8 @@ export default function App() {
                 </ProtectedRoute>
               }
             />
+            {/* Public standalone hosted checkout page for buyer payment links */}
+            <Route path="/pay/:sessionId" element={<PublicCheckout />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Router>
