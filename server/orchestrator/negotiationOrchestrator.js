@@ -35,11 +35,9 @@ async function createRazorpayOrderForDeal(session, finalPrice, quantity) {
 
     const subtotal = Math.round(finalPrice * quantity);
     const totalInr = Math.round(subtotal * 1.18); // Total including 18% GST
-    // Razorpay sandbox test limit cap: keep under ₹99,000 if large B2B wholesale
-    const testAmountInr = Math.min(totalInr, 99000);
 
     const options = {
-      amount: testAmountInr * 100, // in paise
+      amount: totalInr * 100, // in paise — full amount, no cap
       currency: 'INR',
       receipt: `parlay_${session.session_id.substring(4, 12)}`,
       notes: {
@@ -391,25 +389,7 @@ class NegotiationOrchestrator {
     }
 
     const rzpOrderId = await createRazorpayOrderForDeal(session, finalPrice, session.quantity);
-
-    // Atomically decrement stock level in inventory
-    const updatedProduct = await MerchantInventoryItem.findOneAndUpdate(
-      { product_id: session.product_id },
-      { $inc: { stock_level: -session.quantity } },
-      { new: true }
-    );
-
-    if (updatedProduct) {
-      // Ensure stock never drops below 0 in DB
-      if (updatedProduct.stock_level < 0) {
-        updatedProduct.stock_level = 0;
-        await updatedProduct.save();
-      }
-      if (this.io) {
-        this.io.emit('inventory:updated', updatedProduct);
-      }
-      console.log(`[Orchestrator] Decremented stock for ${updatedProduct.product_id}. Remaining stock: ${updatedProduct.stock_level}`);
-    }
+    console.log(`[Orchestrator] Deal closed for ${session.session_id}. Stock will be decremented upon payment settlement.`);
 
     session.status = 'deal_closed';
     session.final_price = finalPrice;

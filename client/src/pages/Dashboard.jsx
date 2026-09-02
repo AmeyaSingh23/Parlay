@@ -128,9 +128,35 @@ export default function Dashboard() {
     };
 
     const handleInventoryUpdated = (updatedProduct) => {
-      toast(`Live Floor updated for ${updatedProduct.name}: ₹${updatedProduct.floor_price}`, { icon: '📊' });
+      toast(`Stock/Floor updated for ${updatedProduct.name}: ${updatedProduct.stock_level} units left`, { icon: '📊' });
       setProducts((prev) => prev.map(p => p.product_id === updatedProduct.product_id ? updatedProduct : p));
       setSelectedProduct((prev) => prev?.product_id === updatedProduct.product_id ? updatedProduct : prev);
+    };
+
+    const handlePaymentSuccess = ({ session_id, receiptMsg, session: updatedSession, updatedProduct }) => {
+      toast.success('Official B2B Payment Captured & Verified!', { icon: '🧾' });
+      if (receiptMsg) {
+        setMessages((prev) => {
+          if (prev.some(m => m._id === receiptMsg._id || m.message === receiptMsg.message)) return prev;
+          return [...prev, receiptMsg];
+        });
+      }
+      if (updatedSession) {
+        setCurrentSession((prev) => prev?.session_id === session_id ? updatedSession : prev);
+      }
+      if (updatedProduct) {
+        setProducts((prev) => prev.map(p => p.product_id === updatedProduct.product_id ? updatedProduct : p));
+      }
+      fetchSessions();
+    };
+
+    const handleGlobalUpdate = ({ sessionId, event, data }) => {
+      if (event === 'negotiation:turn' && data) {
+        setMessages((prev) => {
+          if (prev.some(m => m._id === data._id || m.message === data.message)) return prev;
+          return [...prev, data];
+        });
+      }
     };
 
     socket.on('negotiation:turn', handleTurn);
@@ -139,6 +165,8 @@ export default function Dashboard() {
     socket.on('negotiation:deal_closed', handleDealClosed);
     socket.on('negotiation:status', handleStatus);
     socket.on('inventory:updated', handleInventoryUpdated);
+    socket.on('payment:success', handlePaymentSuccess);
+    socket.on('negotiation:global_update', handleGlobalUpdate);
 
     return () => {
       socket.off('negotiation:turn', handleTurn);
@@ -147,6 +175,8 @@ export default function Dashboard() {
       socket.off('negotiation:deal_closed', handleDealClosed);
       socket.off('negotiation:status', handleStatus);
       socket.off('inventory:updated', handleInventoryUpdated);
+      socket.off('payment:success', handlePaymentSuccess);
+      socket.off('negotiation:global_update', handleGlobalUpdate);
     };
   }, [socket]);
 
@@ -324,13 +354,33 @@ export default function Dashboard() {
         onClose={() => setIsInvoiceModalOpen(false)}
         session={currentSession}
         product={products.find(p => p.product_id === currentSession?.product_id)}
-        onPaymentSuccess={(updatedSession) => {
+        onPaymentSuccess={async (updatedSession, receiptMsg) => {
           if (updatedSession) {
             setCurrentSession(updatedSession);
           } else {
             setCurrentSession(prev => prev ? { ...prev, payment_status: 'paid', paid_at: new Date() } : null);
           }
+          if (receiptMsg) {
+            setMessages(prev => {
+              if (prev.some(m => m._id === receiptMsg._id || m.message === receiptMsg.message)) return prev;
+              return [...prev, receiptMsg];
+            });
+          }
           fetchSessions();
+          // Reload the entire session transcript to ensure official receipt is displayed
+          if (currentSession?.session_id) {
+            try {
+              const res = await axios.get(`/negotiation/sessions/${currentSession.session_id}`);
+              if (res.data?.messages) {
+                setMessages(res.data.messages);
+              }
+              if (res.data?.session) {
+                setCurrentSession(res.data.session);
+              }
+            } catch (err) {
+              console.error('Failed to reload session after payment:', err);
+            }
+          }
         }}
       />
     </div>

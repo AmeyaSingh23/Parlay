@@ -52,35 +52,37 @@ export default function InvoiceModal({ isOpen, onClose, session, product, onPaym
     }
 
     setIsPaying(true);
-    toast.loading('Charging pre-authorized buyer mandate & verifying HMAC signature...', { id: 'mandate-settle' });
+    toast.loading('Buyer Agent executing autonomous settlement via Pre-Authorized Mandate...', { id: 'mandate-settle' });
 
     try {
-      let orderId = session.razorpay_order_id;
-      if (!orderId || orderId.startsWith('order_err_') || orderId.startsWith('order_sim_')) {
-        const res = await axios.post('/payment/create-order', { totalPrice: totalAmount });
-        orderId = res.data.id;
-      }
-
-      const paymentId = `pay_mandate_${Date.now()}`;
-      const verifyRes = await axios.post('/payment/verify', {
-        session_id: session.session_id,
-        razorpay_order_id: orderId,
-        razorpay_payment_id: paymentId,
-        razorpay_signature: 'test_signature_valid'
+      const payRes = await axios.post('/payment/agent-pay', {
+        session_id: session.session_id
       });
 
-      setIsPaid(true);
-      setPaymentDetails({ razorpay_payment_id: paymentId, razorpay_order_id: orderId });
-      toast.success('Pre-Authorized Mandate Charged! (HMAC Validated)', { id: 'mandate-settle' });
+      if (payRes.data.alreadyPaid) {
+        setIsPaid(true);
+        toast.success('This invoice has already been settled.', { id: 'mandate-settle' });
+        return;
+      }
 
-      if (onPaymentSuccess) {
-        onPaymentSuccess(verifyRes.data.session);
+      if (payRes.data.success) {
+        setIsPaid(true);
+        setPaymentDetails({
+          razorpay_payment_id: payRes.data.payment_id,
+          razorpay_order_id: payRes.data.order_id
+        });
+        toast.success(`Autonomous Mandate Settled! TX: ${payRes.data.payment_id}`, { id: 'mandate-settle' });
+
+        if (onPaymentSuccess) {
+          onPaymentSuccess(payRes.data.session, payRes.data.receiptMsg);
+        }
+      } else {
+        toast.error(payRes.data.message || 'Agent payment failed', { id: 'mandate-settle' });
       }
     } catch (err) {
-      setIsPaid(true);
-      setPaymentDetails({ razorpay_payment_id: `pay_mandate_${Date.now()}` });
-      toast.success('Mandate Payment Verified & Captured!', { id: 'mandate-settle' });
-      if (onPaymentSuccess) onPaymentSuccess();
+      const errMsg = err.response?.data?.message || err.response?.data?.details?.error?.description || err.message;
+      toast.error(`Agent Settlement Failed: ${errMsg}`, { id: 'mandate-settle' });
+      console.error('[AgentPay] Error:', err.response?.data || err);
     } finally {
       setIsPaying(false);
     }
@@ -100,7 +102,7 @@ export default function InvoiceModal({ isOpen, onClose, session, product, onPaym
       // Ensure we have a valid test order ID from backend
       if (!activeOrderId || activeOrderId.startsWith('order_err_') || activeOrderId.startsWith('order_sim_') || activeOrderId.startsWith('order_test_')) {
         const orderRes = await axios.post('/payment/create-order', {
-          totalPrice: Math.min(totalAmount, 99000)
+          totalPrice: totalAmount
         });
         if (orderRes.data && orderRes.data.id) {
           activeOrderId = orderRes.data.id;
@@ -128,7 +130,7 @@ export default function InvoiceModal({ isOpen, onClose, session, product, onPaym
               setIsPaid(true);
               setPaymentDetails(response);
               if (onPaymentSuccess) {
-                onPaymentSuccess(verifyRes.data.session);
+                onPaymentSuccess(verifyRes.data.session, verifyRes.data.receiptMsg);
               }
             } catch (err) {
               setIsPaid(true);
@@ -358,10 +360,10 @@ export default function InvoiceModal({ isOpen, onClose, session, product, onPaym
               onClick={handleMandateSettle}
               disabled={isPaying}
               className="btn btn-secondary py-1.5 text-[11px] font-mono flex items-center justify-center gap-1 text-amber-300 border-amber-500/20 hover:bg-amber-500/10 cursor-pointer"
-              title="Charge pre-authorized buyer mandate via backend API"
+              title="Autonomous Machine-to-Machine settlement using Buyer Agent pre-authorized mandate budget"
             >
               <Zap className="w-3 h-3 text-amber-400" />
-              <span>Auto-Charge via Pre-Authorized Mandate (API)</span>
+              <span>{isPaying ? 'Executing Autonomous Mandate Settlement...' : '⚡ Autonomous Agent Settlement (Pre-Authorized Mandate)'}</span>
             </button>
           )}
         </div>

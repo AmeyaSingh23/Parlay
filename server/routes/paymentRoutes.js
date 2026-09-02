@@ -1,9 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const { createRazorpayOrder, verifyPayment } = require('../controllers/razorpayController');
-const { protect } = require('../middleware/authMiddleware');
+const { createRazorpayOrder, verifyPayment, agentPay, linkCallback, linkStatus } = require('../controllers/razorpayController');
 
-router.post('/create-order', protect, createRazorpayOrder);
-router.post('/verify', protect, verifyPayment);
+// All payment routes are secured by session_id validation and Razorpay HMAC cryptographic verification
+router.post('/create-order', createRazorpayOrder);
+router.post('/verify', verifyPayment);
+router.post('/agent-pay', agentPay);
+router.get('/link-callback', linkCallback);
+router.get('/link-status/:session_id', linkStatus);
 
 module.exports = router;

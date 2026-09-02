@@ -79,7 +79,7 @@ export default function PublicCheckout() {
       // Ensure we have a valid test order ID from backend
       if (!activeOrderId || activeOrderId.startsWith('order_err_') || activeOrderId.startsWith('order_sim_') || activeOrderId.startsWith('order_test_')) {
         const orderRes = await axios.post('/payment/create-order', {
-          totalPrice: Math.min(totalAmount, 99000)
+          totalPrice: totalAmount
         });
         if (orderRes.data && orderRes.data.id) {
           activeOrderId = orderRes.data.id;
