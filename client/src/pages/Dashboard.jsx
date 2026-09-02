@@ -71,28 +71,45 @@ export default function Dashboard() {
     const handleTurn = (msg) => {
       setMessages((prev) => {
         if (msg._id && prev.some(m => m._id === msg._id)) return prev;
+        if (prev.some(m => m.message === msg.message && m.round === msg.round && m.sender === msg.sender)) return prev;
         return [...prev, msg];
       });
     };
 
     const handleFirewall = (fwMsg) => {
       toast.error(`FIREWALL BLOCKED ₹${fwMsg.proposed_price}: Below live floor!`, { duration: 5000 });
-      setMessages((prev) => [...prev, fwMsg]);
+      setMessages((prev) => {
+        if (fwMsg._id && prev.some(m => m._id === fwMsg._id)) return prev;
+        if (prev.some(m => m.message === fwMsg.message && m.round === fwMsg.round)) return prev;
+        return [...prev, fwMsg];
+      });
     };
 
     const handleHitl = ({ session, message }) => {
       toast('Human-in-the-Loop review required (near floor price)', { icon: '⚠️', duration: 6000 });
       setCurrentSession(session);
       setIsNegotiating(false);
-      setMessages((prev) => [...prev, message]);
+      if (message) {
+        setMessages((prev) => {
+          if (message._id && prev.some(m => m._id === message._id)) return prev;
+          if (prev.some(m => m.message === message.message)) return prev;
+          return [...prev, message];
+        });
+      }
       fetchSessions();
     };
 
-    const handleDealClosed = ({ session, message, razorpay_order_id, total_amount }) => {
+    const handleDealClosed = ({ session, message, invoiceMessage, razorpay_order_id, total_amount }) => {
       toast.success(`Deal Closed! Razorpay Order: ${razorpay_order_id}`, { duration: 6000 });
       setCurrentSession(session);
       setIsNegotiating(false);
-      setMessages((prev) => [...prev, message]);
+      if (message) {
+        setMessages((prev) => {
+          if (message._id && prev.some(m => m._id === message._id)) return prev;
+          if (prev.some(m => m.message === message.message)) return prev;
+          return [...prev, message];
+        });
+      }
       fetchSessions();
       setIsInvoiceModalOpen(true);
     };
@@ -101,7 +118,11 @@ export default function Dashboard() {
       setCurrentSession(session);
       setIsNegotiating(false);
       if (message) {
-        setMessages((prev) => [...prev, message]);
+        setMessages((prev) => {
+          if (message._id && prev.some(m => m._id === message._id)) return prev;
+          if (prev.some(m => m.message === message.message)) return prev;
+          return [...prev, message];
+        });
       }
       fetchSessions();
     };
