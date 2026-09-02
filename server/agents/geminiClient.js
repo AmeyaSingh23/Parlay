@@ -1,50 +1,84 @@
 const https = require('https');
-const { getGcpAccessToken } = require('../auth/gcpAuth');
+const { execSync } = require('child_process');
+
+let cachedToken = null;
+let tokenExpiresAt = 0;
 
 /**
- * Calls Gemini via Google Cloud Vertex AI REST API with robust fallback chain.
+ * Retrieves a valid GCP OAuth access token using gcloud CLI.
+ * Cached for 45 minutes to minimize subshell overhead.
+ */
+function getGcpAccessToken() {
+  const now = Date.now();
+  if (cachedToken && now < tokenExpiresAt) {
+    return cachedToken;
+  }
+  try {
+    const token = execSync('gcloud auth print-access-token', { timeout: 10000 }).toString().trim();
+    cachedToken = token;
+    tokenExpiresAt = now + (45 * 60 * 1000); // 45 minutes
+    return token;
+  } catch (err) {
+    console.error('[GeminiClient] Error obtaining gcloud token:', err.message);
+    if (cachedToken) return cachedToken;
+    throw new Error('GCP authentication failed. Please ensure gcloud auth is configured.');
+  }
+}
+
+/**
+ * Sends a structured generation request to Gemini on Vertex AI.
  *
- * @param {object} params
- * @param {string} params.systemInstruction - Persona & negotiation context
- * @param {Array<object>} params.contents - Message history
- * @param {number} [params.temperature=0.3] - LLM temperature
- * @param {number} [params.maxOutputTokens=1024] - Max output tokens
+ * @param {string} systemPrompt - Instructions for the agent role
+ * @param {Array<{role: 'user' | 'model', text: string}>} history - Conversation turns
+ * @param {object} [options] - Temperature, model override
  * @returns {Promise<string>} Raw model response text
  */
-async function callGeminiRaw({ systemInstruction, contents, temperature = 0.3, maxOutputTokens = 1024 }) {
-  const token = await getGcpAccessToken();
+async function callGeminiRaw(systemPrompt, history, options = {}) {
   const projectId = process.env.GCP_PROJECT_ID || 'parlay-buildathon';
   const location = process.env.GCP_LOCATION || 'global';
-  const primaryModel = process.env.GEMINI_MODEL || 'gemini-3.7-flash';
+  const primaryModel = options.model || process.env.GEMINI_MODEL || 'gemini-3.7-flash';
   const fallbackModel = 'gemini-3.5-flash';
   const tertiaryModel = 'gemini-2.5-flash';
 
+  const token = getGcpAccessToken();
+
+  const hostname = location === 'global'
+    ? 'aiplatform.googleapis.com'
+    : `${location}-aiplatform.googleapis.com`;
+
+  // Convert conversation history to Gemini contents format
+  const contents = [];
+  if (history && history.length > 0) {
+    for (const h of history) {
+      contents.push({
+        role: h.role === 'buyer' || h.role === 'user' ? 'user' : 'model',
+        parts: [{ text: h.text }]
+      });
+    }
+  } else {
+    contents.push({
+      role: 'user',
+      parts: [{ text: 'Please begin the negotiation.' }]
+    });
+  }
+
   const payload = {
-    contents,
+    systemInstruction: {
+      parts: [{ text: systemPrompt }]
+    },
+    contents: contents,
     generationConfig: {
-      temperature,
-      maxOutputTokens,
+      temperature: options.temperature !== undefined ? options.temperature : 0.3,
+      maxOutputTokens: 1024,
       responseMimeType: 'application/json'
     }
   };
 
-  if (systemInstruction) {
-    payload.systemInstruction = {
-      parts: [{ text: systemInstruction }]
-    };
-  }
-
-  const data = JSON.stringify(payload);
-
   const attempt = (modelName) => {
     return new Promise((resolve) => {
-      const hostname = location === 'global'
-        ? 'aiplatform.googleapis.com'
-        : `${location}-aiplatform.googleapis.com`;
-
+      const data = JSON.stringify(payload);
       const req = https.request({
-        hostname,
-        port: 443,
+        hostname: hostname,
         path: `/v1/projects/${projectId}/locations/${location}/publishers/google/models/${modelName}:generateContent`,
         method: 'POST',
         headers: {
@@ -52,7 +86,7 @@ async function callGeminiRaw({ systemInstruction, contents, temperature = 0.3, m
           'Content-Type': 'application/json',
           'Content-Length': Buffer.byteLength(data)
         },
-        timeout: 20000
+        timeout: 25000
       }, (res) => {
         let body = '';
         res.on('data', chunk => body += chunk);
@@ -85,11 +119,11 @@ async function callGeminiRaw({ systemInstruction, contents, temperature = 0.3, m
   // 1. Try primary model (gemini-3.7-flash)
   let result = await attempt(primaryModel);
   if (!result.ok) {
-    console.warn(`[GeminiClient] ${primaryModel} failed (${result.status}: ${result.error || ''}). Trying ${fallbackModel}...`);
+    console.warn(`[GeminiClient] ${primaryModel} returned status ${result.status}. Attempting fallback ${fallbackModel}...`);
     // 2. Try fallback (gemini-3.5-flash)
     result = await attempt(fallbackModel);
     if (!result.ok) {
-      console.warn(`[GeminiClient] ${fallbackModel} failed. Trying ${tertiaryModel}...`);
+      console.warn(`[GeminiClient] Fallback ${fallbackModel} failed. Attempting ${tertiaryModel}...`);
       // 3. Try tertiary fallback (gemini-2.5-flash)
       result = await attempt(tertiaryModel);
       if (!result.ok) {
@@ -118,15 +152,14 @@ function parseJsonResponse(rawText) {
   }
   try {
     return JSON.parse(clean);
-  } catch (e) {
-    const jsonMatch = clean.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
+  } catch (err) {
+    const match = clean.match(/\{[\s\S]*\}/);
+    if (match) {
       try {
-        return JSON.parse(jsonMatch[0]);
-      } catch (e2) {
-        return null;
-      }
+        return JSON.parse(match[0]);
+      } catch (e) {}
     }
+    console.error('[GeminiClient] Failed to parse JSON from output:', rawText);
     return null;
   }
 }
