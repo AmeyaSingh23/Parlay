@@ -118,6 +118,26 @@ export default function TranscriptPanel({
           }
 
           if (isSystem || isHuman) {
+            const isPaymentReceipt = msg.message.includes('PAYMENT CAPTURED') || msg.policy_reason === 'PAYMENT_CAPTURED_HMAC_VERIFIED';
+            if (isPaymentReceipt) {
+              return (
+                <div key={index} className="chat-bubble-animate my-1.5 p-2.5 rounded-lg bg-emerald-950/30 border border-emerald-500/40 shadow-xs text-left">
+                  <div className="flex items-center justify-between text-emerald-400 text-xs font-bold font-mono">
+                    <div className="flex items-center gap-1.5">
+                      <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>OFFICIAL B2B PAYMENT RECEIPT DELIVERED</span>
+                    </div>
+                    <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 font-mono font-semibold border border-emerald-500/30">
+                      HMAC VERIFIED
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-emerald-200 mt-1 font-mono leading-relaxed">
+                    {msg.message}
+                  </p>
+                </div>
+              );
+            }
+
             return (
               <div key={index} className="chat-bubble-animate my-0.5 p-2 rounded bg-[#191c26] border border-white/5 text-center shadow-xs">
                 <span className="text-[8px] font-mono text-slate-400 uppercase tracking-wider block mb-0.5">

@@ -70,6 +70,25 @@ const verifyPayment = async (req, res) => {
       }
       session.paid_at = new Date();
       await session.save();
+
+      // Create a receipt audit message in the live chat arena
+      const NegotiationMessage = require('../models/NegotiationMessage');
+      const receiptMsg = await NegotiationMessage.create({
+        session_id: session.session_id,
+        sender: 'system',
+        message: `🧾 PAYMENT CAPTURED & SETTLED: Transaction ID #${session.razorpay_payment_id}. Finalized B2B Tax Invoice delivered to Buyer Agent procurement ERP repository. [HMAC-SHA256 Signature Verified]`,
+        proposed_price: session.final_price,
+        policy_reason: 'PAYMENT_CAPTURED_HMAC_VERIFIED',
+        firewall_result: 'pass',
+        round: session.rounds_count
+      });
+
+      // Broadcast to live arena spectators
+      const io = req.app.get('io');
+      if (io) {
+        io.to(session.session_id).emit('negotiation:turn', receiptMsg);
+        io.emit('negotiation:global_update', { sessionId: session.session_id, event: 'negotiation:turn', data: receiptMsg });
+      }
     }
 
     res.json({
