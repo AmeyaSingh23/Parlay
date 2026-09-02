@@ -15,8 +15,9 @@ async function callGeminiRaw({ systemInstruction, contents, temperature = 0.3, m
   const token = await getGcpAccessToken();
   const projectId = process.env.GCP_PROJECT_ID || 'parlay-buildathon';
   const location = process.env.GCP_LOCATION || 'global';
-  const primaryModel = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
-  const fallbackModel = 'gemini-2.5-flash';
+  const primaryModel = process.env.GEMINI_MODEL || 'gemini-3.7-flash';
+  const fallbackModel = 'gemini-3.5-flash';
+  const tertiaryModel = 'gemini-2.5-flash';
 
   const payload = {
     contents,
@@ -81,16 +82,16 @@ async function callGeminiRaw({ systemInstruction, contents, temperature = 0.3, m
     });
   };
 
-  // 1. Try primary model
+  // 1. Try primary model (gemini-3.7-flash)
   let result = await attempt(primaryModel);
   if (!result.ok) {
     console.warn(`[GeminiClient] ${primaryModel} failed (${result.status}: ${result.error || ''}). Trying ${fallbackModel}...`);
-    // 2. Try fallback
+    // 2. Try fallback (gemini-3.5-flash)
     result = await attempt(fallbackModel);
     if (!result.ok) {
-      console.warn(`[GeminiClient] Fallback failed. Trying gemini-2.0-flash...`);
-      // 3. Try secondary fallback
-      result = await attempt('gemini-2.0-flash');
+      console.warn(`[GeminiClient] ${fallbackModel} failed. Trying ${tertiaryModel}...`);
+      // 3. Try tertiary fallback (gemini-2.5-flash)
+      result = await attempt(tertiaryModel);
       if (!result.ok) {
         console.error(`[GeminiClient] All cloud models failed. Using deterministic fallback.`);
         return JSON.stringify({
