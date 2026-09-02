@@ -12,6 +12,22 @@ const startNegotiation = async (req, res) => {
       return res.status(400).json({ message: 'product_id and buyer_persona are required.' });
     }
 
+    const product = await MerchantInventoryItem.findOne({ product_id });
+    if (!product) {
+      return res.status(404).json({ message: `Product ${product_id} not found.` });
+    }
+
+    if (product.stock_level <= 0) {
+      return res.status(400).json({ message: `Product "${product.name}" is currently OUT OF STOCK.` });
+    }
+
+    const requestedQty = Number(quantity) || 1;
+    if (requestedQty > product.stock_level) {
+      return res.status(400).json({
+        message: `Requested quantity (${requestedQty}) exceeds available warehouse stock (${product.stock_level} ${product.unit || 'units'}).`
+      });
+    }
+
     const orchestrator = req.app.get('orchestrator');
     if (!orchestrator) {
       return res.status(500).json({ message: 'Negotiation orchestrator not initialized.' });
@@ -19,7 +35,7 @@ const startNegotiation = async (req, res) => {
 
     const session = await orchestrator.startSession({
       productId: product_id,
-      quantity: Number(quantity) || 10,
+      quantity: requestedQty,
       buyerPersona: buyer_persona
     });
 

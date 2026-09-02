@@ -109,19 +109,28 @@ export default function ProductSelector({
             <label className="font-semibold text-slate-400 uppercase tracking-wider">
               Order Quantity ({selectedProduct?.unit || 'units'})
             </label>
-            <span className="text-slate-400">
-              Stock: {selectedProduct?.stock_level || 0}
+            <span className={`font-semibold ${selectedProduct?.stock_level === 0 ? 'text-rose-400' : 'text-slate-400'}`}>
+              Available: {selectedProduct?.stock_level || 0}
             </span>
           </div>
           <input
             type="number"
             min="1"
-            max={selectedProduct?.stock_level || 1000}
+            max={selectedProduct?.stock_level || 1}
             className="input-field font-mono text-xs py-1"
             value={quantity}
-            onChange={(e) => onChangeQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-            disabled={isNegotiating}
+            onChange={(e) => {
+              const val = parseInt(e.target.value) || 1;
+              const maxStock = selectedProduct?.stock_level || 1;
+              onChangeQuantity(Math.max(1, Math.min(val, maxStock)));
+            }}
+            disabled={isNegotiating || !selectedProduct || selectedProduct.stock_level <= 0}
           />
+          {selectedProduct && selectedProduct.stock_level <= 0 && (
+            <span className="text-[10px] text-rose-400 font-mono">
+              ⚠️ Currently Out of Stock. Cannot start negotiation.
+            </span>
+          )}
         </div>
 
         {/* 3. Collapsible Simulated Buyer Persona Selection */}
@@ -190,7 +199,7 @@ export default function ProductSelector({
       <div className="p-3 border-t border-white/[0.08] bg-[#141720] shrink-0">
         <button
           onClick={onStartNegotiation}
-          disabled={isNegotiating || !selectedProduct}
+          disabled={isNegotiating || !selectedProduct || selectedProduct.stock_level <= 0}
           className="btn btn-primary w-full py-2.5 text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm"
         >
           {isNegotiating ? (
