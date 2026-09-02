@@ -93,7 +93,7 @@ class NegotiationOrchestrator {
       product
     });
 
-    // Run the negotiation loop asynchronously so caller gets immediate response
+    // Run the negotiation loop asynchronously
     setImmediate(() => {
       this.runNegotiationLoop(sessionId).catch(err => {
         console.error(`[Orchestrator] Error running session ${sessionId}:`, err);
@@ -104,22 +104,22 @@ class NegotiationOrchestrator {
   }
 
   /**
-   * Runs the full automated turn-by-turn negotiation until closed, no-deal, or HITL pause.
+   * Runs the turn-by-turn negotiation until closed, no-deal, or HITL pause.
    */
   async runNegotiationLoop(sessionId) {
     let session = await NegotiationSession.findOne({ session_id: sessionId });
     if (!session || session.status !== 'ongoing') return;
 
     const product = await MerchantInventoryItem.findOne({ product_id: session.product_id }).lean();
-    let currentRound = session.rounds_count || 1;
+    let currentRound = session.rounds_count || 0;
     let firewallFeedback = null;
     let lastAgreedPrice = null;
 
     console.log(`[Orchestrator] >>> Starting session ${sessionId} [Persona: ${session.buyer_persona}, Qty: ${session.quantity}]`);
 
-    while (currentRound <= MAX_ROUNDS && session.status === 'ongoing') {
+    while (currentRound < MAX_ROUNDS && session.status === 'ongoing') {
       currentRound++;
-      session.rounds_count = currentRound - 1;
+      session.rounds_count = currentRound;
       await session.save();
 
       // Fetch all messages in this session so far
@@ -148,19 +148,22 @@ class NegotiationOrchestrator {
 
       this.emitToSession(sessionId, 'negotiation:turn', buyerMsg);
 
-      // Check if buyer accepted merchant's previous offer directly
+      // Check if buyer explicitly accepted merchant's price
       if (buyerTurn.action === 'deal_closed' && buyerTurn.offered_price) {
         lastAgreedPrice = buyerTurn.offered_price;
         // Verify buyer's accepted price against firewall before locking
         const fwVal = await firewallCheck(lastAgreedPrice, product.product_id);
         if (fwVal.result === 'pass') {
           if (fwVal.needs_hitl) {
-            await this.pauseForHitl(session, lastAgreedPrice, fwVal.reason);
+            await this.pauseForHitl(session, lastAgreedPrice, fwVal.reason, 'buyer_acceptance');
             return;
           } else {
             await this.closeDeal(session, lastAgreedPrice, product);
             return;
           }
+        } else {
+          await this.terminateSession(session, 'blocked_by_firewall', fwVal.reason);
+          return;
         }
       }
 
@@ -169,8 +172,8 @@ class NegotiationOrchestrator {
         return;
       }
 
-      // Small delay for natural pacing in UI and demo
-      await new Promise(r => setTimeout(r, 600));
+      // Small delay for natural pacing
+      await new Promise(r => setTimeout(r, 800));
 
       // -------------------------------------------------------------
       // TURN 2: MERCHANT AGENT
@@ -223,11 +226,10 @@ class NegotiationOrchestrator {
             liveFloor: fwCheck.live_floor
           };
 
-          // Override proposed price to live floor for safe messaging
           merchantTurn.proposed_price = fwCheck.live_floor;
           merchantTurn.policy_reason = `Firewall Recovery: Clamped to live floor ₹${fwCheck.live_floor}`;
         } else {
-          firewallFeedback = null; // Clear previous feedback
+          firewallFeedback = null;
         }
       }
 
@@ -247,12 +249,12 @@ class NegotiationOrchestrator {
 
       this.emitToSession(sessionId, 'negotiation:turn', merchantMsg);
 
-      // Check if merchant signaled deal closed or accepted
+      // Check if merchant accepted buyer's offer (deal agreed by merchant)
       if (merchantTurn.action === 'deal_closed' && merchantTurn.proposed_price) {
         lastAgreedPrice = merchantTurn.proposed_price;
 
         if (firewallDetails && firewallDetails.needs_hitl) {
-          await this.pauseForHitl(session, lastAgreedPrice, firewallDetails.reason);
+          await this.pauseForHitl(session, lastAgreedPrice, firewallDetails.reason, 'merchant_closing');
           return;
         } else {
           await this.closeDeal(session, lastAgreedPrice, product);
@@ -265,26 +267,20 @@ class NegotiationOrchestrator {
         return;
       }
 
-      // Check if price proposal is within HITL margin during ongoing turns
-      if (firewallDetails && firewallDetails.needs_hitl && merchantTurn.proposed_price) {
-        await this.pauseForHitl(session, merchantTurn.proposed_price, firewallDetails.reason);
-        return;
-      }
-
       // Small delay between rounds
-      await new Promise(r => setTimeout(r, 700));
+      await new Promise(r => setTimeout(r, 900));
     }
 
     // Max rounds reached without explicit agreement
     if (session.status === 'ongoing') {
-      await this.terminateSession(session, 'no_deal', `Maximum allowed rounds (${MAX_ROUNDS}) reached without agreement.`);
+      await this.terminateSession(session, 'no_deal', `Maximum allowed rounds (${MAX_ROUNDS}) reached without mutual agreement.`);
     }
   }
 
   /**
    * Pauses the session into 'pending_hitl' status for Human-in-the-Loop review.
    */
-  async pauseForHitl(session, proposedPrice, reason) {
+  async pauseForHitl(session, proposedPrice, reason, contextType = 'general') {
     session.status = 'pending_hitl';
     session.pending_proposed_price = proposedPrice;
     session.hitl_reason = reason;
@@ -293,7 +289,7 @@ class NegotiationOrchestrator {
     const hitlMsg = await NegotiationMessage.create({
       session_id: session.session_id,
       sender: 'system',
-      message: `[HUMAN-IN-THE-LOOP TRIGGERED] Proposed price ₹${proposedPrice} is near minimum floor boundary. Session paused awaiting Merchant Dashboard approval.`,
+      message: `[HUMAN-IN-THE-LOOP TRIGGERED] Proposed price ₹${proposedPrice} is near minimum floor boundary. Session paused awaiting Merchant Dashboard authorization.`,
       proposed_price: proposedPrice,
       policy_reason: 'HITL_NEAR_FLOOR_APPROVAL_REQUIRED',
       firewall_result: 'pass',
