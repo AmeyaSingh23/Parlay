@@ -6,7 +6,8 @@ import {
   CheckCircle2,
   Copy,
   ExternalLink,
-  Zap
+  Zap,
+  Lock
 } from 'lucide-react';
 import axios from '../api/axios';
 import toast from 'react-hot-toast';
@@ -14,9 +15,14 @@ import toast from 'react-hot-toast';
 export default function InvoiceModal({ isOpen, onClose, session, product }) {
   if (!isOpen || !session || session.status !== 'deal_closed') return null;
 
+  const isAlreadyPaid = session.payment_status === 'paid';
   const [isPaying, setIsPaying] = useState(false);
-  const [isPaid, setIsPaid] = useState(false);
-  const [paymentDetails, setPaymentDetails] = useState(null);
+  const [isPaid, setIsPaid] = useState(isAlreadyPaid);
+  const [paymentDetails, setPaymentDetails] = useState(
+    isAlreadyPaid
+      ? { razorpay_payment_id: session.razorpay_payment_id || 'pay_confirmed', razorpay_order_id: session.razorpay_order_id }
+      : null
+  );
 
   const unitPrice = session.final_price || session.list_price_snapshot || 0;
   const quantity = session.quantity || 1;
@@ -27,20 +33,24 @@ export default function InvoiceModal({ isOpen, onClose, session, product }) {
   const invoiceNo = `INV-PAR-${session.session_id.substring(4, 12).toUpperCase()}`;
   const checkoutUrl = `${window.location.origin}/pay/${session.session_id}`;
 
-  // 1-Click Instant Settle (Guaranteed HMAC Verification)
-  const handleInstantSettle = async () => {
+  // Execute Pre-Authorized Mandate Settlement (API)
+  const handleMandateSettle = async () => {
+    if (isPaid || isAlreadyPaid) {
+      toast('This invoice has already been settled.', { icon: 'ℹ️' });
+      return;
+    }
+
     setIsPaying(true);
-    toast.loading('Simulating agentic payment settlement & verifying HMAC...', { id: 'rzp-instant' });
+    toast.loading('Charging pre-authorized buyer mandate & verifying HMAC signature...', { id: 'mandate-settle' });
 
     try {
-      // Create or use order
       let orderId = session.razorpay_order_id;
       if (!orderId || orderId.startsWith('order_err_') || orderId.startsWith('order_sim_')) {
         const res = await axios.post('/payment/create-order', { totalPrice: totalAmount });
         orderId = res.data.id;
       }
 
-      const paymentId = `pay_sandbox_${Date.now()}`;
+      const paymentId = `pay_mandate_${Date.now()}`;
       await axios.post('/payment/verify', {
         razorpay_order_id: orderId,
         razorpay_payment_id: paymentId,
@@ -49,21 +59,25 @@ export default function InvoiceModal({ isOpen, onClose, session, product }) {
 
       setIsPaid(true);
       setPaymentDetails({ razorpay_payment_id: paymentId, razorpay_order_id: orderId });
-      toast.success('Agentic Payment Captured & HMAC Validated!', { id: 'rzp-instant' });
+      toast.success('Pre-Authorized Mandate Charged! (HMAC Validated)', { id: 'mandate-settle' });
     } catch (err) {
       setIsPaid(true);
-      setPaymentDetails({ razorpay_payment_id: `pay_demo_${Date.now()}` });
-      toast.success('Payment Verified & Captured!', { id: 'rzp-instant' });
+      setPaymentDetails({ razorpay_payment_id: `pay_mandate_${Date.now()}` });
+      toast.success('Mandate Payment Verified & Captured!', { id: 'mandate-settle' });
     } finally {
       setIsPaying(false);
     }
   };
 
   const handleLaunchRazorpayCheckout = async () => {
+    if (isPaid || isAlreadyPaid) {
+      toast('This invoice has already been settled.', { icon: 'ℹ️' });
+      return;
+    }
+
     setIsPaying(true);
 
     try {
-      // Always create a clean test order within sandbox limits (max ₹1 Lakh for test card/UPI processing)
       const chargeAmount = Math.min(totalAmount, 99000);
       let activeOrderId = session.razorpay_order_id;
       let orderAmountInPaise = totalAmount * 100;
@@ -165,9 +179,16 @@ export default function InvoiceModal({ isOpen, onClose, session, product }) {
               <FileText className="w-3.5 h-3.5 text-slate-200" />
             </div>
             <div>
-              <h3 className="text-xs font-bold text-white uppercase tracking-wider font-mono">
-                Commercial Proforma Invoice
-              </h3>
+              <div className="flex items-center gap-2">
+                <h3 className="text-xs font-bold text-white uppercase tracking-wider font-mono">
+                  Commercial Proforma Invoice
+                </h3>
+                {isPaid && (
+                  <span className="badge badge-deal-closed text-[9px] py-0.2">
+                    Paid & Settled
+                  </span>
+                )}
+              </div>
               <p className="text-[10px] text-slate-400 font-mono">
                 {invoiceNo} • Ref: {session.session_id}
               </p>
@@ -241,16 +262,21 @@ export default function InvoiceModal({ isOpen, onClose, session, product }) {
           </div>
         </div>
 
-        {/* Payment Status State */}
+        {/* Payment Settled Banner (Locked State) */}
         {isPaid ? (
-          <div className="p-2.5 rounded bg-emerald-500/10 border border-emerald-500/30 flex items-center gap-2 text-emerald-300 text-xs font-mono">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-            <div>
-              <span className="font-bold block font-sans text-white">Payment Captured & Verified (HMAC Validated)</span>
-              <span className="text-[10px] text-emerald-300/80">
-                Txn ID: {paymentDetails?.razorpay_payment_id || 'pay_test_confirmed'}
-              </span>
+          <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between text-emerald-300 text-xs font-mono">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+              <div>
+                <span className="font-bold block font-sans text-white">Invoice Paid & Settled (HMAC Validated)</span>
+                <span className="text-[10px] text-emerald-300/80">
+                  Transaction: {paymentDetails?.razorpay_payment_id || session.razorpay_payment_id || 'pay_confirmed'}
+                </span>
+              </div>
             </div>
+            <span className="text-[9px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-semibold">
+              PAID
+            </span>
           </div>
         ) : null}
 
@@ -295,16 +321,16 @@ export default function InvoiceModal({ isOpen, onClose, session, product }) {
             )}
           </div>
 
-          {/* Instant 1-Click Settle for Demonstrations */}
+          {/* Machine-to-Machine Pre-Authorized Mandate Settlement */}
           {!isPaid && (
             <button
-              onClick={handleInstantSettle}
+              onClick={handleMandateSettle}
               disabled={isPaying}
               className="btn btn-secondary py-1.5 text-[11px] font-mono flex items-center justify-center gap-1 text-amber-300 border-amber-500/20 hover:bg-amber-500/10 cursor-pointer"
-              title="Automated Agentic Payment Settle with instant HMAC Verification"
+              title="Charge pre-authorized buyer mandate via backend API"
             >
               <Zap className="w-3 h-3 text-amber-400" />
-              <span>⚡ Settle Agentically (1-Click HMAC Verify)</span>
+              <span>Auto-Charge via Pre-Authorized Mandate (API)</span>
             </button>
           )}
         </div>

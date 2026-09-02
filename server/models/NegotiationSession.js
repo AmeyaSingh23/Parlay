@@ -25,6 +25,9 @@ const negotiationSessionSchema = new mongoose.Schema({
   hitl_action: { type: String, enum: ['approved', 'rejected', null], default: null },
   hitl_reason: { type: String, default: null },
   pending_proposed_price: { type: Number, default: null },
+  payment_status: { type: String, enum: ['pending', 'paid'], default: 'pending', index: true },
+  razorpay_payment_id: { type: String, default: null },
+  paid_at: { type: Date, default: null },
   closed_at: { type: Date, default: null }
 }, { timestamps: true });
 

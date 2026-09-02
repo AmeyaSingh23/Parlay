@@ -38,7 +38,19 @@ const verifyPayment = (req, res) => {
     if (expectedSignature !== razorpay_signature)
       return res.status(400).json({ message: 'Payment verification failed' });
 
-    res.json({ success: true, message: 'Payment verified' });
+    // Persist payment status in session
+    const NegotiationSession = require('../models/NegotiationSession');
+    const updatedSession = await NegotiationSession.findOneAndUpdate(
+      { razorpay_order_id: razorpay_order_id },
+      {
+        payment_status: 'paid',
+        razorpay_payment_id: razorpay_payment_id,
+        paid_at: new Date()
+      },
+      { new: true }
+    );
+
+    res.json({ success: true, message: 'Payment verified', session: updatedSession });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

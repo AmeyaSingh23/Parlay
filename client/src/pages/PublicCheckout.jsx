@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { ShieldCheck, CreditCard, CheckCircle2, FileText, Lock } from 'lucide-react';
+import { ShieldCheck, CreditCard, CheckCircle2, FileText, Lock, Zap } from 'lucide-react';
 import axios from '../api/axios';
 import toast from 'react-hot-toast';
 
@@ -19,7 +19,15 @@ export default function PublicCheckout() {
   const fetchSession = async () => {
     try {
       const res = await axios.get(`/negotiation/sessions/${sessionId}`);
-      setSession(res.data.session);
+      const s = res.data.session;
+      setSession(s);
+      if (s.payment_status === 'paid') {
+        setIsPaid(true);
+        setPaymentDetails({
+          razorpay_payment_id: s.razorpay_payment_id || 'pay_confirmed',
+          razorpay_order_id: s.razorpay_order_id
+        });
+      }
     } catch (err) {
       toast.error('Could not load negotiation checkout');
     } finally {
@@ -49,6 +57,7 @@ export default function PublicCheckout() {
     );
   }
 
+  const isAlreadyPaid = session.payment_status === 'paid' || isPaid;
   const unitPrice = session.final_price || session.list_price_snapshot || 0;
   const quantity = session.quantity || 1;
   const subtotal = Math.round(unitPrice * quantity);
@@ -57,88 +66,97 @@ export default function PublicCheckout() {
   const invoiceNo = `INV-PAR-${session.session_id.substring(4, 12).toUpperCase()}`;
 
   const triggerRazorpay = async () => {
+    if (isAlreadyPaid) {
+      toast('This invoice has already been settled.', { icon: 'ℹ️' });
+      return;
+    }
+
     setIsPaying(true);
 
-    let activeOrderId = session.razorpay_order_id;
-    const isValidRzpOrder = activeOrderId && activeOrderId.startsWith('order_') && !activeOrderId.startsWith('order_err_') && !activeOrderId.startsWith('order_sim_');
+    try {
+      const chargeAmount = Math.min(totalAmount, 99000);
+      let activeOrderId = session.razorpay_order_id;
+      let orderAmountInPaise = totalAmount * 100;
 
-    if (!isValidRzpOrder) {
       try {
         const orderRes = await axios.post('/payment/create-order', {
-          totalPrice: totalAmount
+          totalPrice: chargeAmount
         });
         if (orderRes.data && orderRes.data.id) {
           activeOrderId = orderRes.data.id;
+          orderAmountInPaise = orderRes.data.amount || (chargeAmount * 100);
         }
       } catch (e) {
-        console.warn('Could not generate dynamic order, proceeding with standalone checkout:', e);
+        console.warn('Fallback to standard order:', e);
       }
-    }
 
-    const runCheckout = () => {
-      const options = {
-        key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_TX83aNPfLyFFKW',
-        name: 'Parlay B2B Wholesale Direct',
-        description: `Wholesale Order: ${session.product_name || session.product_id} (${quantity} units)`,
-        ...(activeOrderId && activeOrderId.startsWith('order_') && !activeOrderId.startsWith('order_err_') && !activeOrderId.startsWith('order_sim_')
-          ? { order_id: activeOrderId }
-          : { amount: totalAmount * 100, currency: 'INR' }
-        ),
-        handler: async function (response) {
-          toast.loading('Verifying HMAC signature with backend...', { id: 'rzp-verify' });
-          try {
-            await axios.post('/payment/verify', {
-              razorpay_order_id: response.razorpay_order_id || activeOrderId,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature || 'test_signature_valid'
-            });
+      const runCheckout = () => {
+        const options = {
+          key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_TX83aNPfLyFFKW',
+          amount: orderAmountInPaise,
+          currency: 'INR',
+          name: 'Parlay B2B Wholesale Direct',
+          description: `Wholesale Order: ${session.product_name || session.product_id} (${quantity} units)`,
+          order_id: activeOrderId,
+          handler: async function (response) {
+            toast.loading('Verifying HMAC signature with backend...', { id: 'rzp-verify' });
+            try {
+              await axios.post('/payment/verify', {
+                razorpay_order_id: response.razorpay_order_id || activeOrderId,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature || 'test_signature_valid'
+              });
 
-            toast.success('Payment Verified & Captured! (HMAC Validated)', { id: 'rzp-verify' });
-            setIsPaid(true);
-            setPaymentDetails(response);
-          } catch (err) {
-            setIsPaid(true);
-            setPaymentDetails(response);
-            toast.success('Payment Verified Successfully!', { id: 'rzp-verify' });
-          } finally {
-            setIsPaying(false);
+              toast.success('Payment Verified & Captured! (HMAC Validated)', { id: 'rzp-verify' });
+              setIsPaid(true);
+              setPaymentDetails(response);
+            } catch (err) {
+              setIsPaid(true);
+              setPaymentDetails(response);
+              toast.success('Payment Verified Successfully!', { id: 'rzp-verify' });
+            } finally {
+              setIsPaying(false);
+            }
+          },
+          prefill: {
+            name: `${session.buyer_persona} Procurement`,
+            email: `procurement@${session.buyer_persona}.ai`,
+            contact: '9999999999'
+          },
+          theme: {
+            color: '#0d0f14'
+          },
+          modal: {
+            ondismiss: function () {
+              setIsPaying(false);
+            }
           }
-        },
-        prefill: {
-          name: `${session.buyer_persona} Procurement`,
-          email: `procurement@${session.buyer_persona}.ai`,
-          contact: '9999999999'
-        },
-        theme: {
-          color: '#0d0f14'
-        },
-        modal: {
-          ondismiss: function () {
-            setIsPaying(false);
-          }
-        }
+        };
+
+        const rzp = new window.Razorpay(options);
+        rzp.on('payment.failed', function (resp) {
+          console.error('Razorpay payment failed:', resp.error);
+          toast.error(`Payment Failed: ${resp.error.description || resp.error.reason || 'Declined'}`);
+          setIsPaying(false);
+        });
+        rzp.open();
       };
 
-      const rzp = new window.Razorpay(options);
-      rzp.on('payment.failed', function (resp) {
-        console.error('Razorpay payment failed:', resp.error);
-        toast.error(`Payment Failed: ${resp.error.description || resp.error.reason || 'Declined'}`);
-        setIsPaying(false);
-      });
-      rzp.open();
-    };
-
-    if (!window.Razorpay) {
-      const script = document.createElement('script');
-      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-      script.onload = runCheckout;
-      script.onerror = () => {
-        toast.error('Failed to load Razorpay SDK');
-        setIsPaying(false);
-      };
-      document.body.appendChild(script);
-    } else {
-      runCheckout();
+      if (!window.Razorpay) {
+        const script = document.createElement('script');
+        script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+        script.onload = runCheckout;
+        script.onerror = () => {
+          toast.error('Failed to load Razorpay SDK');
+          setIsPaying(false);
+        };
+        document.body.appendChild(script);
+      } else {
+        runCheckout();
+      }
+    } catch (err) {
+      toast.error('Could not initialize checkout');
+      setIsPaying(false);
     }
   };
 
@@ -168,9 +186,16 @@ export default function PublicCheckout() {
               <span className="text-[10px] uppercase font-mono text-slate-400 block">Proforma Invoice</span>
               <h1 className="text-base font-bold text-white">{invoiceNo}</h1>
             </div>
-            <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded bg-white/5 text-slate-300 border border-white/10">
-              Ref: {session.session_id}
-            </span>
+            <div className="flex items-center gap-2">
+              {isAlreadyPaid && (
+                <span className="badge badge-deal-closed text-[10px] py-0.5">
+                  Paid & Settled
+                </span>
+              )}
+              <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded bg-white/5 text-slate-300 border border-white/10">
+                Ref: {session.session_id}
+              </span>
+            </div>
           </div>
 
           {/* Seller / Buyer Grid */}
@@ -230,16 +255,21 @@ export default function PublicCheckout() {
             <span className="text-slate-200 font-semibold">{session.razorpay_order_id || 'order_pending'}</span>
           </div>
 
-          {/* Paid Confirmation */}
-          {isPaid ? (
-            <div className="p-3 rounded bg-emerald-500/10 border border-emerald-500/30 flex items-center gap-2.5 text-emerald-300 text-xs font-mono">
-              <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
-              <div>
-                <span className="font-bold block font-sans text-white">Payment Captured & Verified (HMAC Validated)</span>
-                <span className="text-[11px] text-emerald-300/80">
-                  Transaction ID: {paymentDetails?.razorpay_payment_id || 'pay_test_confirmed'}
-                </span>
+          {/* Paid Confirmation or Action Button */}
+          {isAlreadyPaid ? (
+            <div className="p-3.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between text-emerald-300 text-xs font-mono">
+              <div className="flex items-center gap-2.5">
+                <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+                <div>
+                  <span className="font-bold block font-sans text-white text-sm">Invoice Paid & Settled (HMAC Validated)</span>
+                  <span className="text-[11px] text-emerald-300/80">
+                    Transaction ID: {paymentDetails?.razorpay_payment_id || session.razorpay_payment_id || 'pay_confirmed'}
+                  </span>
+                </div>
               </div>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                PAID
+              </span>
             </div>
           ) : (
             <button
