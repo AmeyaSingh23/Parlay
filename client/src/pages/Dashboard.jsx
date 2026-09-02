@@ -266,6 +266,14 @@ export default function Dashboard() {
         onClose={() => setIsInvoiceModalOpen(false)}
         session={currentSession}
         product={products.find(p => p.product_id === currentSession?.product_id)}
+        onPaymentSuccess={(updatedSession) => {
+          if (updatedSession) {
+            setCurrentSession(updatedSession);
+          } else {
+            setCurrentSession(prev => prev ? { ...prev, payment_status: 'paid', paid_at: new Date() } : null);
+          }
+          fetchSessions();
+        }}
       />
     </div>
   );
