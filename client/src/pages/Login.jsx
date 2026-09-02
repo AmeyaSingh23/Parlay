@@ -58,7 +58,7 @@ export default function Login() {
             Parlay Merchant Portal
           </h1>
           <p className="text-[11px] text-slate-400 font-mono mt-0.5">
-            B2B Pricing Agent & Deterministic Code Firewall
+            Autonomous Agentic Commerce & Protected Settlement
           </p>
         </div>
 

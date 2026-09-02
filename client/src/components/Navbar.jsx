@@ -16,16 +16,11 @@ export default function Navbar({ onOpenFloorModal }) {
             <ShieldCheck className="w-4 h-4 text-slate-950" />
           </div>
           <div>
-            <div className="flex items-center gap-1.5">
-              <span className="font-bold text-sm tracking-tight text-slate-100 font-['Plus_Jakarta_Sans']">
-                Parlay
-              </span>
-              <span className="text-[9px] uppercase font-mono px-1.5 py-0.2 rounded bg-white/5 text-slate-400 border border-white/10">
-                Track 01
-              </span>
-            </div>
+            <span className="font-bold text-sm tracking-tight text-slate-100 font-['Plus_Jakarta_Sans']">
+              Parlay
+            </span>
             <p className="text-[10px] text-slate-400 font-mono">
-              B2B Pricing Agent & Deterministic Code Firewall
+              Autonomous Agentic Commerce & Protected Settlement
             </p>
           </div>
         </div>
