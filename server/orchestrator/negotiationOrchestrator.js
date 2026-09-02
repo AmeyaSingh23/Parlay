@@ -449,6 +449,7 @@ class NegotiationOrchestrator {
   emitToSession(sessionId, event, data) {
     if (!this.io) return;
     this.io.to(sessionId).emit(event, data);
+    this.io.emit(event, data);
     this.io.emit('negotiation:global_update', { sessionId, event, data });
   }
 }

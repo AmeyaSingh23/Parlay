@@ -152,11 +152,48 @@ export default function Dashboard() {
 
       toast.success(`Negotiation started with ${selectedPersona} persona!`);
       fetchSessions();
+
+      // Immediately fetch any turns already generated
+      try {
+        const initialRes = await axios.get(`/negotiation/sessions/${newSession.session_id}`);
+        if (initialRes.data && initialRes.data.messages && initialRes.data.messages.length > 0) {
+          setMessages(initialRes.data.messages);
+        }
+      } catch (e) {
+        // Handled by live sockets
+      }
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to start negotiation');
       setIsNegotiating(false);
     }
   };
+
+  // Background active session poller (resilient fallback alongside WebSockets)
+  useEffect(() => {
+    if (!isNegotiating || !currentSession?.session_id) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await axios.get(`/negotiation/sessions/${currentSession.session_id}`);
+        if (res.data) {
+          if (res.data.messages && res.data.messages.length > 0) {
+            setMessages(res.data.messages);
+          }
+          if (res.data.session) {
+            setCurrentSession(res.data.session);
+            if (res.data.session.status !== 'ongoing') {
+              setIsNegotiating(false);
+              fetchSessions();
+            }
+          }
+        }
+      } catch (e) {
+        // Polling retry
+      }
+    }, 2500);
+
+    return () => clearInterval(interval);
+  }, [isNegotiating, currentSession?.session_id]);
 
   // Inspect Past Session
   const handleSelectSession = async (sessionId) => {
