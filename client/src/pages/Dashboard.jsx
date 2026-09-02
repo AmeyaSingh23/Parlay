@@ -68,7 +68,6 @@ export default function Dashboard() {
 
     const handleTurn = (msg) => {
       setMessages((prev) => {
-        // Prevent duplicate append by checking _id or timestamp
         if (msg._id && prev.some(m => m._id === msg._id)) return prev;
         return [...prev, msg];
       });
@@ -144,12 +143,11 @@ export default function Dashboard() {
       const newSession = res.data.session;
       setCurrentSession(newSession);
 
-      // Join socket room for this session
       if (socket) {
         socket.emit('join:session', newSession.session_id);
       }
 
-      toast.success(`Session ${newSession.session_id} started against ${selectedPersona} persona!`);
+      toast.success(`Session started against ${selectedPersona} persona!`);
       fetchSessions();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to start negotiation');
@@ -175,7 +173,7 @@ export default function Dashboard() {
     }
   };
 
-  // HITL Approve
+  // HITL Decisions
   const handleApproveHitl = async (sessionId) => {
     try {
       await axios.post(`/negotiation/sessions/${sessionId}/approve`, {
@@ -187,7 +185,6 @@ export default function Dashboard() {
     }
   };
 
-  // HITL Reject
   const handleRejectHitl = async (sessionId) => {
     try {
       await axios.post(`/negotiation/sessions/${sessionId}/reject`, {
@@ -205,8 +202,8 @@ export default function Dashboard() {
       <Navbar onOpenFloorModal={() => setIsFloorModalOpen(true)} />
 
       {/* Main 3-Column Arena Layout */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-5 grid grid-cols-1 lg:grid-cols-12 gap-5 h-[calc(100vh-70px)]">
-        {/* Left Column: Product & Persona Setup (3 cols) */}
+      <main className="flex-1 max-w-[1400px] w-full mx-auto p-4 grid grid-cols-1 lg:grid-cols-12 gap-4 h-[calc(100vh-62px)]">
+        {/* Left Column: Setup (3 cols) */}
         <div className="lg:col-span-3 h-full overflow-hidden">
           <ProductSelector
             products={products}
