@@ -19,6 +19,7 @@
   "author": "Ameya Singh",
   "license": "ISC",
   "dependencies": {
+    "@google/genai": "^2.20.0",
     "@google/generative-ai": "^0.24.0",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",
