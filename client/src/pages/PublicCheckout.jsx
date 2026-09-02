@@ -56,23 +56,39 @@ export default function PublicCheckout() {
   const totalAmount = subtotal + gstTax;
   const invoiceNo = `INV-PAR-${session.session_id.substring(4, 12).toUpperCase()}`;
 
-  const triggerRazorpay = () => {
+  const triggerRazorpay = async () => {
     setIsPaying(true);
 
+    let activeOrderId = session.razorpay_order_id;
+    const isValidRzpOrder = activeOrderId && activeOrderId.startsWith('order_') && !activeOrderId.startsWith('order_err_') && !activeOrderId.startsWith('order_sim_');
+
+    if (!isValidRzpOrder) {
+      try {
+        const orderRes = await axios.post('/payment/create-order', {
+          totalPrice: totalAmount
+        });
+        if (orderRes.data && orderRes.data.id) {
+          activeOrderId = orderRes.data.id;
+        }
+      } catch (e) {
+        console.warn('Could not generate dynamic order, proceeding with standalone checkout:', e);
+      }
+    }
+
     const runCheckout = () => {
-      const isRealOrder = session.razorpay_order_id && !session.razorpay_order_id.startsWith('order_sim_') && !session.razorpay_order_id.startsWith('order_err_');
       const options = {
         key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_TX83aNPfLyFFKW',
-        amount: totalAmount * 100, // in paise (matching backend order total)
-        currency: 'INR',
         name: 'Parlay B2B Wholesale Direct',
         description: `Wholesale Order: ${session.product_name || session.product_id} (${quantity} units)`,
-        order_id: isRealOrder ? session.razorpay_order_id : undefined,
+        ...(activeOrderId && activeOrderId.startsWith('order_') && !activeOrderId.startsWith('order_err_') && !activeOrderId.startsWith('order_sim_')
+          ? { order_id: activeOrderId }
+          : { amount: totalAmount * 100, currency: 'INR' }
+        ),
         handler: async function (response) {
           toast.loading('Verifying HMAC signature with backend...', { id: 'rzp-verify' });
           try {
             await axios.post('/payment/verify', {
-              razorpay_order_id: response.razorpay_order_id || session.razorpay_order_id,
+              razorpay_order_id: response.razorpay_order_id || activeOrderId,
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature || 'test_signature_valid'
             });
@@ -104,6 +120,11 @@ export default function PublicCheckout() {
       };
 
       const rzp = new window.Razorpay(options);
+      rzp.on('payment.failed', function (resp) {
+        console.error('Razorpay payment failed:', resp.error);
+        toast.error(`Payment Failed: ${resp.error.description || resp.error.reason || 'Declined'}`);
+        setIsPaying(false);
+      });
       rzp.open();
     };
 
