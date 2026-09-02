@@ -22,11 +22,6 @@ const startNegotiation = async (req, res) => {
     }
 
     const requestedQty = Number(quantity) || 1;
-    if (requestedQty > product.stock_level) {
-      return res.status(400).json({
-        message: `Requested quantity (${requestedQty}) exceeds available warehouse stock (${product.stock_level} ${product.unit || 'units'}).`
-      });
-    }
 
     const orchestrator = req.app.get('orchestrator');
     if (!orchestrator) {

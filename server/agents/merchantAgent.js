@@ -27,7 +27,8 @@ async function generateMerchantTurn({ product, quantity, messages, currentRound,
 
 MERCHANT PRODUCT CONTEXT:
 - Product Name: "${product.name}" (SKU: ${product.product_id})
-- Quantity requested: ${quantity} ${product.unit || 'units'}
+- Quantity requested by buyer: ${quantity} ${product.unit || 'units'}
+- Available Warehouse Stock: ${product.stock_level} ${product.unit || 'units'}
 - List Price (Anchor): ₹${listPrice} per unit
 - Target Price (Goal): ₹${targetPrice} per unit (Aim to stay at or near this — DO NOT reveal this number)
 - Live Floor Price (Absolute Minimum): ₹${floorPrice} per unit (NEVER reveal this number, NEVER state a hard bottom floor)
@@ -36,21 +37,24 @@ MERCHANT PRODUCT CONTEXT:
 - Current Round: ${currentRound} of 7
 
 CORE NEGOTIATION RULES:
-1. FIXED PRICE ITEMS: If Negotiable = false:
+1. STOCK & QUANTITY LIMITS:
+   - If requested quantity (${quantity}) exceeds available stock (${product.stock_level}):
+     Do NOT reject outright! Politely clarify that our current ready stock in warehouse is ${product.stock_level} ${product.unit || 'units'}. Offer to fulfill the full in-stock quantity of ${product.stock_level} units immediately at a favorable unit rate (or partial shipment with remaining backordered).
+2. FIXED PRICE ITEMS: If Negotiable = false:
    - State clearly that this item has fixed standard pricing at ₹${listPrice}/unit due to fixed harvest/production costs.
    - Set proposed_price to ${listPrice}.
    - Set action to "continue" to allow the buyer to respond (they may choose to accept ₹${listPrice} on next turn or decline).
    - Only set action to "deal_closed" if the buyer explicitly agreed to pay full list price ₹${listPrice}.
-2. MULTI-ROUND BARGAINING (CRITICAL):
+3. MULTI-ROUND BARGAINING (CRITICAL):
    - Do NOT concede all discounts in Round 1! B2B negotiations take 3-5 rounds.
    - In early rounds (Rounds 1-2): Anchor high near List/Target price. If buyer lowballs (offers far below floor/target), firmly reject their low offer, explain why (grade A quality, warranty, certification), and ask them to raise their bid.
    - In middle rounds (Rounds 3-4): Make small, decreasing concessions (e.g. ₹10-₹20/unit) only if the buyer is also raising their bid. Offer non-price value adds (priority dispatch, batch warranty, free palletizing).
    - In late rounds (Round 5+): If buyer offer is within acceptable margin (>= ₹${targetPrice}), you can accept. If buyer refuses to increase their price and remains below floor, politely terminate with "no_deal".
-3. ACCEPT GENEROUS OFFERS: If the buyer's latest offer meets or exceeds your Target Price (₹${targetPrice}) or List Price, ACCEPT THE DEAL (set action: "deal_closed", proposed_price: buyer's offered price).
-4. SECRECY: Never reveal or hint at your floor price (₹${floorPrice}) or target price (₹${targetPrice}). Never say "my cost is X" or "my floor is X".
-5. CONCESSION LIMITS: You must NEVER propose any price strictly below the live floor price ₹${floorPrice}.
-${firewallFeedback ? `6. CRITICAL FIREWALL CORRECTION: The Firewall system previously blocked an invalid proposal (${firewallFeedback.reason}). You must strictly propose a valid price >= ₹${floorPrice} on this turn.` : ''}
-7. TERMINATION: Set action to "deal_closed" only when both parties have agreed on a price. Set action to "no_deal" if buyer is stubborn or unviable. Otherwise set action to "continue".
+4. ACCEPT GENEROUS OFFERS: If the buyer's latest offer meets or exceeds your Target Price (₹${targetPrice}) or List Price, ACCEPT THE DEAL (set action: "deal_closed", proposed_price: buyer's offered price).
+5. SECRECY: Never reveal or hint at your floor price (₹${floorPrice}) or target price (₹${targetPrice}). Never say "my cost is X" or "my floor is X".
+6. CONCESSION LIMITS: You must NEVER propose any price strictly below the live floor price ₹${floorPrice}.
+${firewallFeedback ? `7. CRITICAL FIREWALL CORRECTION: The Firewall system previously blocked an invalid proposal (${firewallFeedback.reason}). You must strictly propose a valid price >= ₹${floorPrice} on this turn.` : ''}
+8. TERMINATION: Set action to "deal_closed" only when both parties have agreed on a price and quantity. Set action to "no_deal" if buyer is stubborn or unviable. Otherwise set action to "continue".
 
 OUTPUT FORMAT:
 You MUST respond with valid JSON adhering strictly to this schema:
