@@ -35,11 +35,14 @@ function getGcpAccessToken() {
  */
 async function callGeminiRaw(systemPrompt, history, options = {}) {
   const projectId = process.env.GCP_PROJECT_ID || 'parlay-buildathon';
-  const location = process.env.GCP_LOCATION || 'us-central1';
-  const primaryModel = options.model || process.env.GEMINI_MODEL || 'gemini-2.5-flash';
-  const fallbackModel = 'gemini-2.5-pro';
+  const location = process.env.GCP_LOCATION || 'global';
+  const primaryModel = options.model || process.env.GEMINI_MODEL || 'gemini-3.7-flash';
+  const fallbackModel = 'gemini-3.5-flash';
 
   const token = getGcpAccessToken();
+
+  // Compute correct hostname for global vs regional endpoint
+  const hostname = location === 'global' ? 'aiplatform.googleapis.com' : `${location}-aiplatform.googleapis.com`;
 
   // Convert conversation history to Gemini contents format
   const contents = [];
@@ -73,7 +76,7 @@ async function callGeminiRaw(systemPrompt, history, options = {}) {
     return new Promise((resolve, reject) => {
       const data = JSON.stringify(payload);
       const req = https.request({
-        hostname: `${location}-aiplatform.googleapis.com`,
+        hostname: hostname,
         path: `/v1/projects/${projectId}/locations/${location}/publishers/google/models/${modelName}:generateContent`,
         method: 'POST',
         headers: {
@@ -111,13 +114,18 @@ async function callGeminiRaw(systemPrompt, history, options = {}) {
     });
   };
 
-  // Try primary model
+  // Try primary model (gemini-3.7-flash)
   let result = await attempt(primaryModel);
   if (!result.ok) {
-    console.warn(`[GeminiClient] Primary model ${primaryModel} failed (${result.status}). Trying fallback ${fallbackModel}...`);
+    console.warn(`[GeminiClient] Primary model ${primaryModel} returned status ${result.status}. Attempting fallback ${fallbackModel}...`);
     result = await attempt(fallbackModel);
     if (!result.ok) {
-      throw new Error(`Gemini generation failed: ${result.body || result.error || result.status}`);
+      // Third tier fallback to gemini-2.5-flash
+      console.warn(`[GeminiClient] Fallback ${fallbackModel} failed. Attempting gemini-2.5-flash...`);
+      result = await attempt('gemini-2.5-flash');
+      if (!result.ok) {
+        throw new Error(`Gemini generation failed on all models: ${result.body || result.error || result.status}`);
+      }
     }
   }
 
@@ -139,7 +147,6 @@ function parseJsonResponse(rawText) {
   try {
     return JSON.parse(clean);
   } catch (err) {
-    // Attempt regex extraction of outermost JSON object
     const match = clean.match(/\{[\s\S]*\}/);
     if (match) {
       try {
