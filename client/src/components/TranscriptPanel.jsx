@@ -207,18 +207,21 @@ export default function TranscriptPanel({
                   </div>
                 )}
 
-                {/* Merchant Policy Reason */}
+                {/* Merchant Policy Reasoning & Firewall Audit Box */}
                 {isMerchant && (
-                  <div className="mt-1.5 pt-1 border-t border-emerald-500/20 text-[9px] text-emerald-300/70 flex items-center justify-between gap-2 font-mono">
-                    <span className="italic truncate max-w-[200px]" title={msg.policy_reason}>
-                      {msg.policy_reason}
-                    </span>
-                    {msg.firewall_result === 'pass' && (
-                      <span className="inline-flex items-center gap-0.5 text-emerald-400 shrink-0 font-semibold">
-                        <ShieldCheck className="w-2.5 h-2.5" />
-                        Firewall: PASS
-                      </span>
-                    )}
+                  <div className="mt-2.5 pt-2 border-t border-emerald-500/20 flex flex-col gap-1 text-[9px] font-mono">
+                    <div className="flex items-center justify-between gap-1 text-emerald-400/90 font-semibold">
+                      <span className="uppercase tracking-wider">Internal Policy Reason:</span>
+                      {msg.firewall_result === 'pass' && (
+                        <span className="inline-flex items-center gap-0.5 text-emerald-300 font-semibold bg-emerald-500/15 px-1.5 py-0.2 rounded border border-emerald-500/30">
+                          <ShieldCheck className="w-2.5 h-2.5" />
+                          Firewall: PASS
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-emerald-300/80 leading-relaxed italic bg-black/25 p-1.5 rounded border border-emerald-500/10">
+                      {msg.policy_reason || 'Priced in accordance with catalog target and volume tier margins.'}
+                    </p>
                   </div>
                 )}
               </div>
