@@ -110,25 +110,20 @@ export default function ProductSelector({
               Order Quantity ({selectedProduct?.unit || 'units'})
             </label>
             <span className={`font-semibold ${selectedProduct?.stock_level === 0 ? 'text-rose-400' : 'text-slate-400'}`}>
-              Available: {selectedProduct?.stock_level || 0}
+              In Stock: {selectedProduct?.stock_level || 0}
             </span>
           </div>
           <input
             type="number"
             min="1"
-            max={selectedProduct?.stock_level || 1}
             className="input-field font-mono text-xs py-1"
             value={quantity}
-            onChange={(e) => {
-              const val = parseInt(e.target.value) || 1;
-              const maxStock = selectedProduct?.stock_level || 1;
-              onChangeQuantity(Math.max(1, Math.min(val, maxStock)));
-            }}
-            disabled={isNegotiating || !selectedProduct || selectedProduct.stock_level <= 0}
+            onChange={(e) => onChangeQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+            disabled={isNegotiating || !selectedProduct}
           />
-          {selectedProduct && selectedProduct.stock_level <= 0 && (
-            <span className="text-[10px] text-rose-400 font-mono">
-              ⚠️ Currently Out of Stock. Cannot start negotiation.
+          {selectedProduct && quantity > selectedProduct.stock_level && (
+            <span className="text-[10px] text-amber-400/90 font-mono">
+              ⚡ Requesting {quantity} units ({quantity - selectedProduct.stock_level} over in-stock capacity). Agents will negotiate batch availability.
             </span>
           )}
         </div>
@@ -199,7 +194,7 @@ export default function ProductSelector({
       <div className="p-3 border-t border-white/[0.08] bg-[#141720] shrink-0">
         <button
           onClick={onStartNegotiation}
-          disabled={isNegotiating || !selectedProduct || selectedProduct.stock_level <= 0}
+          disabled={isNegotiating || !selectedProduct}
           className="btn btn-primary w-full py-2.5 text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm"
         >
           {isNegotiating ? (
