@@ -25,7 +25,8 @@ import {
   RotateCw,
   Search,
   Receipt,
-  Award
+  Award,
+  Activity
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import InvoiceModal from '../components/InvoiceModal';
@@ -48,6 +49,13 @@ export default function AgentCatalog() {
   const [invoiceInitialTab, setInvoiceInitialTab] = useState('invoice');
   const [isSimRunning, setIsSimRunning] = useState(false);
   const [simLogs, setSimLogs] = useState([]);
+  const [telemetry, setTelemetry] = useState({
+    status: 'STANDBY',
+    round: 0,
+    firewallStatus: 'ARMED',
+    settlementRail: 'IDLE',
+    latencyMs: 38
+  });
 
   // Buyer Procurement Audit Ledger state
   const [buyerOrders, setBuyerOrders] = useState([]);
@@ -255,6 +263,14 @@ const getBuyerDialogue = (persona, round, qty, bid) => {
 
     setIsSimRunning(true);
     setSimLogs([]);
+    const startTime = Date.now();
+    setTelemetry({
+      status: 'STREAMING',
+      round: 1,
+      firewallStatus: 'PASS',
+      settlementRail: activeAutoSettle ? 'PRE_AUTH' : 'AWAITING_DEAL',
+      latencyMs: 42
+    });
 
     const log = (msg, type = 'info') => {
       setSimLogs(prev => [...prev, { text: msg, type, timestamp: new Date().toLocaleTimeString() }]);
@@ -282,6 +298,11 @@ const getBuyerDialogue = (persona, round, qty, bid) => {
       });
 
       const session = rfqRes.data;
+      setTelemetry(prev => ({
+        ...prev,
+        round: 1,
+        latencyMs: Math.max(25, Date.now() - startTime)
+      }));
       log(`✔ RFQ Accepted! Session ID: ${session.session_id}`, 'green');
 
       if (session.customer_profile) {
@@ -321,6 +342,8 @@ const getBuyerDialogue = (persona, round, qty, bid) => {
       // 2. Negotiation Loop
       while (currentRound < 8 && !isClosed) {
         currentRound++;
+        const roundStart = Date.now();
+        setTelemetry(prev => ({ ...prev, round: currentRound }));
         await new Promise(r => setTimeout(r, 1200));
 
         log(`\n--- ROUND ${currentRound} OF 8 ---`, 'bright');
@@ -336,7 +359,10 @@ const getBuyerDialogue = (persona, round, qty, bid) => {
           });
 
           const data = negRes.data;
+          setTelemetry(prev => ({ ...prev, latencyMs: Math.max(30, Date.now() - roundStart) }));
+
           if (data.status === 'pending_hitl') {
+            setTelemetry(prev => ({ ...prev, status: 'HITL_PAUSED', settlementRail: 'GOVERNANCE_GATE' }));
             log(`\n⏸️ [HUMAN-IN-THE-LOOP TRIGGERED]: Proposal paused near supplier floor boundary.`, 'yellow');
             if (data.pending_price) {
               log(`   Proposed Deal Price: ₹${data.pending_price}/unit`, 'bright');
@@ -349,12 +375,14 @@ const getBuyerDialogue = (persona, round, qty, bid) => {
           }
 
           if (data.status === 'no_deal') {
+            setTelemetry(prev => ({ ...prev, status: 'STANDBY', settlementRail: 'IDLE' }));
             log(`\n⏳ ${data.message || 'Negotiation ended without mutual agreement.'}`, 'yellow');
             fetchBuyerOrders();
             break;
           }
 
           if (data.firewall_status === 'INTERCEPTED_AND_WARNED') {
+            setTelemetry(prev => ({ ...prev, firewallStatus: 'BREACH_INTERCEPTED' }));
             log(`⚠️ [FIREWALL ALERT]: Commercial policy warned below-floor proposal.`, 'yellow');
           }
 
@@ -378,6 +406,7 @@ const getBuyerDialogue = (persona, round, qty, bid) => {
               });
 
               if (closeRes.data?.status === 'pending_hitl') {
+                setTelemetry(prev => ({ ...prev, status: 'HITL_PAUSED', settlementRail: 'GOVERNANCE_GATE' }));
                 log(`\n⏸️ [HUMAN-IN-THE-LOOP REQUIRED]: Deal terms ₹${finalPrice}/unit suspended awaiting Merchant Executive authorization.`, 'yellow');
                 log(`👉 Session halted into PENDING HITL APPROVAL status.`, 'bright');
                 log(`👉 Switch to the Merchant Dashboard tab (/dashboard) to approve or reject this proposal live!`, 'cyan');
@@ -387,6 +416,11 @@ const getBuyerDialogue = (persona, round, qty, bid) => {
               }
 
               isClosed = true;
+              setTelemetry(prev => ({
+                ...prev,
+                status: activeAutoSettle ? 'SETTLED' : 'STREAMING',
+                settlementRail: activeAutoSettle ? 'CAPTURED_RAZORPAY' : 'AWAITING_PAYMENT'
+              }));
 
               const dealProduct = catalog?.items?.find(i => i.sku === activeSku);
               const closedSessionData = {
@@ -418,6 +452,11 @@ const getBuyerDialogue = (persona, round, qty, bid) => {
                 });
 
                 if (settleRes.data.success) {
+                  setTelemetry(prev => ({
+                    ...prev,
+                    status: 'SETTLED',
+                    settlementRail: 'CAPTURED_RAZORPAY'
+                  }));
                   log(`🎉 SETTLEMENT CAPTURED & CONFIRMED!`, 'green');
                   log(`Transaction ID: ${settleRes.data.transaction_id}`, 'bright');
                   log(`Razorpay Order ID: ${settleRes.data.razorpay_order_id}`, 'bright');
@@ -455,6 +494,11 @@ const getBuyerDialogue = (persona, round, qty, bid) => {
           }
         } catch (negErr) {
           if (negErr.response?.status === 422) {
+            setTelemetry(prev => ({
+              ...prev,
+              status: 'BLOCKED',
+              firewallStatus: 'BREACH_INTERCEPTED'
+            }));
             log(`🚨 [FIREWALL INTERCEPTION]: ${negErr.response.data.message || 'Bid rejected below floor'}`, 'red');
             log(`🛑 Session quarantined by deterministic firewall defense!`, 'red');
             fetchCustomerProfiles();
@@ -467,6 +511,7 @@ const getBuyerDialogue = (persona, round, qty, bid) => {
       }
 
       if (!isClosed && currentRound >= 8) {
+        setTelemetry(prev => ({ ...prev, status: 'STANDBY', settlementRail: 'IDLE' }));
         log(`\n⏳ Maximum negotiation rounds (8/8) reached without mutual agreement. Session ended (No Deal).`, 'yellow');
         await axios.post('/agent/negotiate', {
           session_id: session.session_id,
@@ -479,6 +524,7 @@ const getBuyerDialogue = (persona, round, qty, bid) => {
       log(`Simulation Error: ${err.message}`, 'red');
     } finally {
       setIsSimRunning(false);
+      setTelemetry(prev => (prev.status === 'STREAMING' ? { ...prev, status: 'STANDBY' } : prev));
     }
   };
 
@@ -972,31 +1018,73 @@ const getBuyerDialogue = (persona, round, qty, bid) => {
                     <span>{isSimRunning ? 'Agent Negotiating in Real Time...' : 'Launch Autonomous Buyer Agent'}</span>
                   </button>
 
-                  {/* Gateway Telemetry HUD */}
-                  <div className="p-3.5 rounded bg-zinc-950 border border-white/[0.04] text-[11px] font-mono space-y-2">
+                  {/* Live A2A Gateway Telemetry HUD */}
+                  <div className="p-3.5 rounded bg-zinc-950 border border-white/[0.04] text-[11px] font-mono space-y-2.5">
                     <div className="flex items-center justify-between border-b border-white/[0.04] pb-1.5">
-                      <span className="text-[10px] text-zinc-400 uppercase tracking-wider font-bold">A2A Gateway Telemetry</span>
-                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">ONLINE</span>
+                      <span className="text-[10px] text-zinc-400 uppercase tracking-wider font-bold flex items-center gap-1.5">
+                        <Activity className={`w-3.5 h-3.5 ${telemetry.status === 'STREAMING' ? 'text-emerald-400 animate-pulse' : 'text-zinc-500'}`} />
+                        <span>A2A Live Telemetry</span>
+                      </span>
+                      <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold border flex items-center gap-1.5 ${
+                        telemetry.status === 'STREAMING' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' :
+                        telemetry.status === 'BLOCKED' ? 'bg-red-500/20 text-red-300 border-red-500/30' :
+                        telemetry.status === 'HITL_PAUSED' ? 'bg-amber-500/20 text-amber-300 border-amber-500/30' :
+                        telemetry.status === 'SETTLED' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' :
+                        'bg-zinc-800 text-zinc-400 border-zinc-700/60'
+                      }`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${
+                          telemetry.status === 'STREAMING' ? 'bg-emerald-400 animate-ping' :
+                          telemetry.status === 'BLOCKED' ? 'bg-red-400' :
+                          telemetry.status === 'HITL_PAUSED' ? 'bg-amber-400' :
+                          telemetry.status === 'SETTLED' ? 'bg-emerald-400' : 'bg-zinc-500'
+                        }`} />
+                        {telemetry.status}
+                      </span>
                     </div>
+
                     <div className="flex items-center justify-between text-zinc-300">
-                      <span className="text-zinc-500">Security Engine</span>
-                      <span className="text-emerald-400 font-bold">Deterministic Firewall</span>
+                      <span className="text-zinc-500">Negotiation Turn</span>
+                      <span className="text-zinc-200 font-bold">
+                        {telemetry.round > 0 ? `Round ${telemetry.round} / 8` : 'Idle (Ready)'}
+                      </span>
                     </div>
+
+                    <div className="flex items-center justify-between text-zinc-300">
+                      <span className="text-zinc-500">Firewall Sentinel</span>
+                      <span className={`font-bold ${
+                        telemetry.firewallStatus === 'BREACH_INTERCEPTED' ? 'text-red-400' :
+                        telemetry.firewallStatus === 'PASS' ? 'text-emerald-400' : 'text-zinc-400'
+                      }`}>
+                        {telemetry.firewallStatus === 'BREACH_INTERCEPTED' ? '🚨 Intercepted (< Floor)' :
+                         telemetry.firewallStatus === 'PASS' ? 'Active (100% Margin Guard)' :
+                         'Armed (Monitoring)'}
+                      </span>
+                    </div>
+
                     <div className="flex items-center justify-between text-zinc-300">
                       <span className="text-zinc-500">Settlement Rail</span>
-                      <span className="text-zinc-300 font-bold">Razorpay Test Sandbox</span>
+                      <span className={`font-bold ${
+                        telemetry.settlementRail === 'CAPTURED_RAZORPAY' ? 'text-emerald-400' :
+                        telemetry.settlementRail === 'GOVERNANCE_GATE' ? 'text-amber-400' :
+                        telemetry.settlementRail === 'PRE_AUTH' ? 'text-cyan-400' :
+                        telemetry.settlementRail === 'AWAITING_PAYMENT' ? 'text-amber-300' : 'text-zinc-400'
+                      }`}>
+                        {telemetry.settlementRail === 'CAPTURED_RAZORPAY' ? 'Captured (Razorpay M2M)' :
+                         telemetry.settlementRail === 'GOVERNANCE_GATE' ? 'Paused for Human Gate' :
+                         telemetry.settlementRail === 'PRE_AUTH' ? 'Pre-Auth Armed' :
+                         telemetry.settlementRail === 'AWAITING_PAYMENT' ? 'Proforma Issued' : 'Standby'}
+                      </span>
                     </div>
+
                     <div className="flex items-center justify-between text-zinc-300">
-                      <span className="text-zinc-500">Prompt Defense</span>
-                      <span className="text-zinc-300 font-bold">Adversarial Quarantine</span>
+                      <span className="text-zinc-500">Gateway Latency</span>
+                      <span className="text-emerald-400 font-bold">
+                        {telemetry.latencyMs}ms <span className="text-zinc-600 font-normal">(HTTP/1.1)</span>
+                      </span>
                     </div>
-                    <div className="flex items-center justify-between text-zinc-300">
-                      <span className="text-zinc-500">A2A Protocol</span>
-                      <span className="text-emerald-400 font-bold">REST / MCP Tool v1.0</span>
-                    </div>
-                  </div>
                   </div>
                 </div>
+              </div>
 
               {/* Right Column: Terminal Screen + Settlement Station */}
               <div className="lg:col-span-2 flex flex-col space-y-4">
