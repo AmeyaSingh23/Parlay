@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   ShieldCheck,
   ShieldAlert,
@@ -9,7 +9,9 @@ import {
   FileText,
   User,
   Store,
-  Award
+  Award,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 
 const COMPANY_MAP = {
@@ -70,6 +72,7 @@ export default function TranscriptPanel({
   onRejectHitl,
   onOpenInvoice
 }) {
+  const [isDossierExpanded, setIsDossierExpanded] = useState(false);
   const chatContainerRef = useRef(null);
 
   useEffect(() => {
@@ -94,6 +97,16 @@ export default function TranscriptPanel({
         return <span className="badge badge-no-deal">{status}</span>;
     }
   };
+
+  const profile = session?.customer_profile_id && typeof session.customer_profile_id === 'object'
+    ? session.customer_profile_id
+    : {
+        lifetime_spend_inr: session?.buyer_persona === 'reasonable' ? 60180 : 0,
+        deals_closed_count: session?.buyer_persona === 'reasonable' ? 1 : 0,
+        lowball_strikes: session?.buyer_persona === 'floor_tester' ? 3 : (session?.buyer_persona === 'lowballer' || session?.buyer_persona === 'aggressive_lowballer') ? 2 : 0,
+        discount_elasticity_bonus: (session?.buyer_persona === 'reasonable' || session?.buyer_persona === 'impatient_enterprise') ? 1.5 : -3,
+        last_deal_summary: session?.buyer_persona === 'reasonable' ? 'Verified wholesale order fulfilled with priority dispatch.' : 'Account initialized in Parlay Commerce Gateway.'
+      };
 
   return (
     <div className="panel-card flex flex-col h-full overflow-hidden bg-zinc-900">
@@ -127,41 +140,90 @@ export default function TranscriptPanel({
         )}
       </div>
 
-      {/* Customer Memory & Reputation Dossier Bar */}
+      {/* Customer Memory & Reputation Dossier Bar (Expandable) */}
       {session && (
-        <div className="px-3.5 py-2 bg-zinc-950/80 border-b border-white/[0.04] flex items-center justify-between gap-3 text-xs font-mono">
-          <div className="flex items-center gap-2 min-w-0">
-            <Award className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-            <span className="font-bold text-zinc-200 truncate">
-              {getCompanyName(session.buyer_persona)}
-            </span>
-            <span className={`text-[9px] px-2 py-0.5 rounded font-bold shrink-0 ${getTierBadge(session.loyalty_tier_snapshot, session.trust_score_snapshot).className}`}>
-              {getTierBadge(session.loyalty_tier_snapshot, session.trust_score_snapshot).label}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-2 shrink-0 text-[10px]">
-            <span className="text-zinc-500">Trust Score:</span>
-            <div className="flex items-center gap-1.5">
-              <div className="w-14 h-1.5 bg-zinc-800 rounded-full overflow-hidden border border-white/[0.04]">
-                <div 
-                  className={`h-full rounded-full transition-all duration-300 ${
-                    (session.trust_score_snapshot || 50) >= 80 ? 'bg-emerald-400' :
-                    (session.trust_score_snapshot || 50) >= 50 ? 'bg-emerald-500/70' :
-                    (session.trust_score_snapshot || 50) >= 30 ? 'bg-amber-400' : 'bg-red-500'
-                  }`}
-                  style={{ width: `${Math.min(100, Math.max(5, session.trust_score_snapshot || 50))}%` }}
-                />
-              </div>
-              <span className={`font-bold font-mono ${
-                (session.trust_score_snapshot || 50) >= 80 ? 'text-emerald-300' :
-                (session.trust_score_snapshot || 50) >= 50 ? 'text-emerald-400' :
-                (session.trust_score_snapshot || 50) >= 30 ? 'text-amber-300' : 'text-red-400'
-              }`}>
-                {session.trust_score_snapshot || 50}/100
+        <div className="border-b border-white/[0.04] bg-zinc-950/90 shrink-0">
+          <button
+            type="button"
+            onClick={() => setIsDossierExpanded(prev => !prev)}
+            className="w-full px-3.5 py-2 flex items-center justify-between gap-3 text-xs font-mono hover:bg-zinc-900/60 transition-colors cursor-pointer text-left"
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              <Award className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              <span className="font-bold text-zinc-200 truncate">
+                {getCompanyName(session.buyer_persona)}
+              </span>
+              <span className={`text-[9px] px-2 py-0.5 rounded font-bold shrink-0 ${getTierBadge(session.loyalty_tier_snapshot, session.trust_score_snapshot).className}`}>
+                {getTierBadge(session.loyalty_tier_snapshot, session.trust_score_snapshot).label}
               </span>
             </div>
-          </div>
+
+            <div className="flex items-center gap-2.5 shrink-0 text-[10px]">
+              <span className="text-zinc-500 hidden sm:inline">Trust Score:</span>
+              <div className="flex items-center gap-1.5">
+                <div className="w-14 h-1.5 bg-zinc-800 rounded-full overflow-hidden border border-white/[0.04]">
+                  <div 
+                    className={`h-full rounded-full transition-all duration-300 ${
+                      (session.trust_score_snapshot || 50) >= 80 ? 'bg-emerald-400' :
+                      (session.trust_score_snapshot || 50) >= 50 ? 'bg-emerald-500/70' :
+                      (session.trust_score_snapshot || 50) >= 30 ? 'bg-amber-400' : 'bg-red-500'
+                    }`}
+                    style={{ width: `${Math.min(100, Math.max(5, session.trust_score_snapshot || 50))}%` }}
+                  />
+                </div>
+                <span className={`font-bold font-mono ${
+                  (session.trust_score_snapshot || 50) >= 80 ? 'text-emerald-300' :
+                  (session.trust_score_snapshot || 50) >= 50 ? 'text-emerald-400' :
+                  (session.trust_score_snapshot || 50) >= 30 ? 'text-amber-300' : 'text-red-400'
+                }`}>
+                  {session.trust_score_snapshot || 50}/100
+                </span>
+              </div>
+              <div className="flex items-center gap-1 text-zinc-400 text-[10px] pl-1.5 border-l border-white/[0.06]">
+                <span className="text-[9px] text-zinc-500 hidden md:inline">{isDossierExpanded ? 'Hide' : 'Dossier'}</span>
+                {isDossierExpanded ? <ChevronUp className="w-3.5 h-3.5 text-emerald-400" /> : <ChevronDown className="w-3.5 h-3.5 text-zinc-400" />}
+              </div>
+            </div>
+          </button>
+
+          {/* Expandable Intelligence Dossier Drawer */}
+          {isDossierExpanded && (
+            <div className="px-3.5 pb-3 pt-1 border-t border-white/[0.04] bg-zinc-950 text-[11px] font-mono space-y-2 animate-in fade-in duration-200">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+                <div className="p-2 rounded bg-zinc-900/80 border border-white/[0.04]">
+                  <span className="text-zinc-500 text-[9px] uppercase tracking-wider block">Lifetime Spend</span>
+                  <span className="text-emerald-400 font-bold text-xs">
+                    ₹{(profile.lifetime_spend_inr || 0).toLocaleString()}
+                  </span>
+                </div>
+                <div className="p-2 rounded bg-zinc-900/80 border border-white/[0.04]">
+                  <span className="text-zinc-500 text-[9px] uppercase tracking-wider block">Contracts Fulfilled</span>
+                  <span className="text-zinc-200 font-bold text-xs">
+                    {profile.deals_closed_count || 0} deals
+                  </span>
+                </div>
+                <div className="p-2 rounded bg-zinc-900/80 border border-white/[0.04]">
+                  <span className="text-zinc-500 text-[9px] uppercase tracking-wider block">Margin Elasticity</span>
+                  <span className={`font-bold text-xs ${profile.discount_elasticity_bonus >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                    {profile.discount_elasticity_bonus >= 0 ? `+${profile.discount_elasticity_bonus}%` : `${profile.discount_elasticity_bonus}%`}
+                  </span>
+                </div>
+                <div className="p-2 rounded bg-zinc-900/80 border border-white/[0.04]">
+                  <span className="text-zinc-500 text-[9px] uppercase tracking-wider block">Lowball Strikes</span>
+                  <span className={`font-bold text-xs ${profile.lowball_strikes > 0 ? 'text-red-400' : 'text-emerald-400'}`}>
+                    {profile.lowball_strikes || 0} strikes
+                  </span>
+                </div>
+              </div>
+
+              {profile.last_deal_summary && (
+                <div className="p-2 rounded bg-zinc-900/40 border border-white/[0.03] text-[10px] text-zinc-400 flex items-start gap-1.5">
+                  <span className="text-zinc-500 uppercase text-[9px] font-bold shrink-0">Audit Note:</span>
+                  <span className="text-zinc-300 italic truncate">{profile.last_deal_summary}</span>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 

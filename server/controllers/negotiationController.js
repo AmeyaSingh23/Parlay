@@ -47,7 +47,7 @@ const startNegotiation = async (req, res) => {
 // GET /api/negotiation/sessions
 const getAllSessions = async (req, res) => {
   try {
-    const sessions = await NegotiationSession.find().sort({ createdAt: -1 });
+    const sessions = await NegotiationSession.find().sort({ createdAt: -1 }).populate('customer_profile_id');
     res.json(sessions);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -57,7 +57,7 @@ const getAllSessions = async (req, res) => {
 // GET /api/negotiation/sessions/:sessionId
 const getSessionById = async (req, res) => {
   try {
-    const session = await NegotiationSession.findOne({ session_id: req.params.sessionId });
+    const session = await NegotiationSession.findOne({ session_id: req.params.sessionId }).populate('customer_profile_id');
     if (!session) {
       return res.status(404).json({ message: 'Session not found' });
     }
