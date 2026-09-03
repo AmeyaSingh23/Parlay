@@ -14,6 +14,7 @@ const inventoryRoutes = require('./routes/inventoryRoutes');
 const negotiationRoutes = require('./routes/negotiationRoutes');
 const authRoutes = require('./routes/authRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
+const agentRoutes = require('./routes/agentRoutes');
 const startCleanupJob = require('./jobs/cleanupOrders');
 const { NegotiationOrchestrator } = require('./orchestrator/negotiationOrchestrator');
 
@@ -78,6 +79,7 @@ app.use('/api/inventory', inventoryRoutes);
 app.use('/api/negotiation', negotiationRoutes);
 app.use('/api/users', authRoutes);
 app.use('/api/payment', paymentRoutes);
+app.use('/api/agent', agentRoutes);
 
 // Connect to MongoDB and start server
 const PORT = process.env.PORT || 5000;

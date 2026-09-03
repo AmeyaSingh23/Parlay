@@ -52,7 +52,7 @@ async function createRazorpayOrderForDeal(session, finalPrice, quantity) {
     };
 
     const order = await rzp.orders.create(options);
-    console.log(`[Orchestrator] Real Razorpay test order created: ${order.id} for ₹${testAmountInr} (actual value: ₹${totalInr})`);
+    console.log(`[Orchestrator] Real Razorpay order created: ${order.id} for ₹${totalInr} (total with GST)`);
     return order.id;
   } catch (err) {
     console.error('[Orchestrator] Razorpay order creation failed:', err.message);

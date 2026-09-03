@@ -7,7 +7,8 @@
     "start": "node index.js",
     "dev": "nodemon index.js",
     "seed": "node seed.js",
-    "test:firewall": "node firewall/firewallCheck.test.js"
+    "test:firewall": "node firewall/firewallCheck.test.js",
+    "demo:agent": "node scripts/externalBuyerAgent.js"
   },
   "keywords": [
     "ai",

@@ -330,4 +330,4 @@ const verifyPayment = async (req, res) => {
   }
 };
 
-module.exports = { createRazorpayOrder, verifyPayment, agentPay, linkCallback, linkStatus };
+module.exports = { createRazorpayOrder, verifyPayment, agentPay, linkCallback, linkStatus, settlePayment };

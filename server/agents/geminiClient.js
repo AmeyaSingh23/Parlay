@@ -14,7 +14,7 @@ function getGcpAccessToken() {
     return cachedToken;
   }
   try {
-    const token = execSync('gcloud auth print-access-token', { timeout: 10000 }).toString().trim();
+    const token = execSync('gcloud auth print-access-token', { timeout: 20000 }).toString().trim();
     cachedToken = token;
     tokenExpiresAt = now + (45 * 60 * 1000); // 45 minutes
     return token;
@@ -46,17 +46,26 @@ async function callGeminiRaw(systemPrompt, history, options = {}) {
     ? 'aiplatform.googleapis.com'
     : `${location}-aiplatform.googleapis.com`;
 
-  // Convert conversation history to Gemini contents format
+  // Convert conversation history to Gemini contents format with strict alternation
   const contents = [];
   if (history && history.length > 0) {
     for (const h of history) {
-      contents.push({
-        role: h.role === 'buyer' || h.role === 'user' ? 'user' : 'model',
-        parts: [{ text: h.text }]
-      });
+      const targetRole = (h.role === 'buyer' || h.role === 'user') ? 'user' : 'model';
+      // Merge consecutive turns of the same role to strictly alternate
+      if (contents.length > 0 && contents[contents.length - 1].role === targetRole) {
+        contents[contents.length - 1].parts[0].text += `\n${h.text}`;
+      } else {
+        contents.push({
+          role: targetRole,
+          parts: [{ text: h.text }]
+        });
+      }
     }
-  } else {
-    contents.push({
+  }
+
+  // Gemini API requires contents to start with role 'user'
+  if (contents.length === 0 || contents[0].role !== 'user') {
+    contents.unshift({
       role: 'user',
       parts: [{ text: 'Please begin the negotiation.' }]
     });

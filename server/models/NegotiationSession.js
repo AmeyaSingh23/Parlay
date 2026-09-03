@@ -6,7 +6,7 @@ const negotiationSessionSchema = new mongoose.Schema({
   product_name: { type: String, default: '' },
   buyer_persona: {
     type: String,
-    enum: ['reasonable', 'aggressive_lowballer', 'generous', 'floor_tester'],
+    enum: ['reasonable', 'aggressive_lowballer', 'lowballer', 'generous', 'floor_tester', 'impatient_enterprise', 'impatient'],
     required: true
   },
   quantity: { type: Number, required: true, default: 1 },

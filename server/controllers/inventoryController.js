@@ -27,7 +27,7 @@ const getInventoryBySku = async (req, res) => {
 // Used for the live price mutation demo (Section 10)
 const updateProductPrice = async (req, res) => {
   try {
-    const { product_id, floor_price, target_price, list_price, stock_level } = req.body;
+    const { product_id, floor_price, target_price, list_price, stock_level, discount_ladder, negotiable } = req.body;
 
     const product = await MerchantInventoryItem.findOne({ product_id });
     if (!product) {
@@ -38,6 +38,8 @@ const updateProductPrice = async (req, res) => {
     if (target_price !== undefined) product.target_price = Number(target_price);
     if (list_price !== undefined) product.list_price = Number(list_price);
     if (stock_level !== undefined) product.stock_level = Number(stock_level);
+    if (negotiable !== undefined) product.negotiable = Boolean(negotiable);
+    if (discount_ladder !== undefined && Array.isArray(discount_ladder)) product.discount_ladder = discount_ladder;
     product.floor_price_updated_at = new Date();
 
     const updated = await product.save();
