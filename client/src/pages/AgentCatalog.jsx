@@ -329,6 +329,18 @@ const getBuyerDialogue = (persona, round, qty, bid) => {
           });
 
           const data = negRes.data;
+          if (data.status === 'pending_hitl') {
+            log(`\n⏸️ [HUMAN-IN-THE-LOOP TRIGGERED]: Proposal paused near supplier floor boundary.`, 'yellow');
+            if (data.pending_price) {
+              log(`   Proposed Deal Price: ₹${data.pending_price}/unit`, 'bright');
+            }
+            log(`👉 Session halted into PENDING HITL APPROVAL status.`, 'bright');
+            log(`👉 Switch to the Merchant Dashboard tab (/dashboard) to approve or reject this proposal live!`, 'cyan');
+            fetchBuyerOrders();
+            fetchCustomerProfiles();
+            break;
+          }
+
           if (data.status === 'no_deal') {
             log(`\n⏳ ${data.message || 'Negotiation ended without mutual agreement.'}`, 'yellow');
             fetchBuyerOrders();

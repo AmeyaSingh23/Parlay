@@ -402,6 +402,122 @@ const handleAgentNegotiate = async (req, res) => {
       };
     }
 
+    // 4. Check if merchant declared no_deal (Walkaway Retention Protocol)
+    if (merchantTurn.action === 'no_deal') {
+      if (product.negotiable && session.rounds_count >= 3 && !session.hitl_action) {
+        const retentionPrice = Math.max(product.floor_price, Math.round(product.floor_price * 1.03));
+        session.status = 'pending_hitl';
+        session.pending_proposed_price = retentionPrice;
+        session.hitl_reason = `Executive walk-away retention discount at ₹${retentionPrice}/unit (Floor: ₹${product.floor_price}). Client threatened order withdrawal — Requires Merchant approval.`;
+        await session.save();
+
+        const retentionMsg = await NegotiationMessage.create({
+          session_id: session.session_id,
+          sender: 'merchant',
+          message: `Before you walk away — we value long-term enterprise procurement relationships. For an order of ${session.quantity} ${product.unit || 'units'}, our executive pricing desk can authorize a one-time retention concession at ₹${retentionPrice}/unit (subject to immediate management approval).`,
+          proposed_price: retentionPrice,
+          policy_reason: `WALKAWAY_RETENTION_PROTOCOL: Executive floor discount ₹${retentionPrice} to retain bulk client. Escalating to Human Merchant review.`,
+          firewall_result: 'pass',
+          round: session.rounds_count
+        });
+
+        if (io) {
+          io.to(session_id).emit('negotiation:turn', retentionMsg);
+          io.to(session_id).emit('negotiation:hitl_required', { session, message: retentionMsg });
+          io.emit('negotiation:global_update', { sessionId: session_id, event: 'negotiation:hitl_required', data: { session, message: retentionMsg } });
+        }
+
+        return res.json({
+          status: 'pending_hitl',
+          session_id,
+          current_round: session.rounds_count,
+          pending_price: retentionPrice,
+          message: 'Walk-away retention protocol triggered. Paused for Merchant approval.',
+          merchant_response: {
+            message: retentionMsg.message,
+            proposed_price_inr: retentionPrice,
+            policy_reason: retentionMsg.policy_reason,
+            action: 'pending_hitl'
+          }
+        });
+      }
+
+      // Conclude with no_deal cleanly
+      session.status = 'no_deal';
+      session.closed_at = new Date();
+      await session.save();
+
+      const merchantMsg = await NegotiationMessage.create({
+        session_id,
+        sender: 'merchant',
+        message: merchantTurn.message,
+        proposed_price: null,
+        policy_reason: merchantTurn.policy_reason,
+        firewall_result: 'pass',
+        round: session.rounds_count
+      });
+
+      if (io) {
+        io.to(session_id).emit('negotiation:turn', merchantMsg);
+        io.to(session_id).emit('negotiation:status', { session });
+        io.emit('negotiation:global_update', { sessionId: session_id, event: 'negotiation:status', data: { session } });
+      }
+
+      return res.json({
+        status: 'no_deal',
+        session_id,
+        message: 'Merchant concluded negotiation rounds without price concession.',
+        merchant_response: {
+          message: merchantTurn.message,
+          proposed_price_inr: null,
+          policy_reason: merchantTurn.policy_reason,
+          action: 'no_deal'
+        }
+      });
+    }
+
+    // 5. Check near-floor HITL condition on merchant proposed price
+    let fwCheck = null;
+    if (merchantTurn.proposed_price !== null && merchantTurn.proposed_price !== undefined) {
+      fwCheck = await firewallCheck(merchantTurn.proposed_price, product.product_id);
+      if (fwCheck.needs_hitl && !session.hitl_action) {
+        session.status = 'pending_hitl';
+        session.pending_proposed_price = merchantTurn.proposed_price;
+        session.hitl_reason = fwCheck.reason;
+        await session.save();
+
+        const hitlMsg = await NegotiationMessage.create({
+          session_id,
+          sender: 'merchant',
+          message: merchantTurn.message,
+          proposed_price: merchantTurn.proposed_price,
+          policy_reason: 'HITL_NEAR_FLOOR_APPROVAL_REQUIRED',
+          firewall_result: 'pass',
+          round: session.rounds_count
+        });
+
+        if (io) {
+          io.to(session_id).emit('negotiation:turn', hitlMsg);
+          io.to(session_id).emit('negotiation:hitl_required', { session, message: hitlMsg });
+          io.emit('negotiation:global_update', { sessionId: session_id, event: 'negotiation:hitl_required', data: { session, message: hitlMsg } });
+        }
+
+        return res.json({
+          status: 'pending_hitl',
+          session_id,
+          current_round: session.rounds_count,
+          pending_price: merchantTurn.proposed_price,
+          message: 'Proposed price is near minimum floor boundary. Session paused awaiting Merchant Executive authorization.',
+          merchant_response: {
+            message: merchantTurn.message,
+            proposed_price_inr: merchantTurn.proposed_price,
+            policy_reason: 'HITL_NEAR_FLOOR_APPROVAL_REQUIRED',
+            action: 'pending_hitl'
+          }
+        });
+      }
+    }
+
     const merchantMsg = await NegotiationMessage.create({
       session_id,
       sender: 'merchant',
