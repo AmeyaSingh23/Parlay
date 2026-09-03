@@ -17,7 +17,13 @@ import {
   AlertTriangle,
   Zap,
   Code,
-  CreditCard
+  CreditCard,
+  History,
+  TrendingDown,
+  DollarSign,
+  RotateCw,
+  Search,
+  Receipt
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import InvoiceModal from '../components/InvoiceModal';
@@ -25,7 +31,7 @@ import InvoiceModal from '../components/InvoiceModal';
 export default function AgentCatalog() {
   const [catalog, setCatalog] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('catalog'); // 'catalog' | 'docs' | 'simulator' | 'mcp'
+  const [activeTab, setActiveTab] = useState('catalog'); // 'catalog' | 'simulator' | 'ledger' | 'docs' | 'mcp'
   const [copiedIndex, setCopiedIndex] = useState(null);
 
   // Simulator state
@@ -35,12 +41,27 @@ export default function AgentCatalog() {
   const [autoSettle, setAutoSettle] = useState(true);
   const [closedSession, setClosedSession] = useState(null);
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
+  const [invoiceInitialTab, setInvoiceInitialTab] = useState('invoice');
   const [isSimRunning, setIsSimRunning] = useState(false);
   const [simLogs, setSimLogs] = useState([]);
 
+  // Buyer Procurement Audit Ledger state
+  const [buyerOrders, setBuyerOrders] = useState([]);
+  const [ordersSummary, setOrdersSummary] = useState(null);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  const [ledgerFilter, setLedgerFilter] = useState('all'); // 'all' | 'paid' | 'pending' | 'quarantined'
+  const [ledgerPersona, setLedgerPersona] = useState('all');
+
   useEffect(() => {
     fetchCatalog();
+    fetchBuyerOrders();
   }, []);
+
+  useEffect(() => {
+    if (activeTab === 'ledger') {
+      fetchBuyerOrders();
+    }
+  }, [activeTab, ledgerFilter, ledgerPersona]);
 
   const fetchCatalog = async () => {
     try {
@@ -56,6 +77,45 @@ export default function AgentCatalog() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchBuyerOrders = async () => {
+    try {
+      setOrdersLoading(true);
+      const res = await axios.get('/agent/orders', {
+        params: {
+          persona: ledgerPersona,
+          status: ledgerFilter
+        }
+      });
+      if (res.data.success) {
+        setBuyerOrders(res.data.orders);
+        setOrdersSummary(res.data.summary);
+      }
+    } catch (err) {
+      console.error('Failed to load buyer orders ledger:', err);
+    } finally {
+      setOrdersLoading(false);
+    }
+  };
+
+  const handleOpenLedgerDoc = (order, tab = 'invoice') => {
+    setClosedSession({
+      session_id: order.session_id,
+      product_id: order.product_id,
+      product_name: order.product_name,
+      quantity: order.quantity,
+      final_price: order.final_price_inr,
+      list_price_snapshot: order.list_price_inr,
+      status: order.status,
+      payment_status: order.payment_status,
+      razorpay_payment_id: order.razorpay_payment_id,
+      razorpay_order_id: order.razorpay_order_id,
+      buyer_persona: order.buyer_persona,
+      paid_at: order.paid_at
+    });
+    setInvoiceInitialTab(tab);
+    setIsInvoiceModalOpen(true);
   };
 
   const copyToClipboard = (text, id) => {
@@ -176,6 +236,7 @@ export default function AgentCatalog() {
                 razorpay_order_id: `order_${session.session_id.substring(8, 22)}`
               };
               setClosedSession(closedSessionData);
+              fetchBuyerOrders();
 
               const invNumber = `INV-PAR-${session.session_id.substring(4, 12).toUpperCase()}`;
               const subtotalAmt = Math.round(finalPrice * Number(simQty));
@@ -205,6 +266,7 @@ export default function AgentCatalog() {
                     razorpay_payment_id: settleRes.data.transaction_id,
                     razorpay_order_id: settleRes.data.razorpay_order_id
                   }));
+                  fetchBuyerOrders();
                 }
               } else {
                 log(`\n💳 DEAL CLOSED — Proforma Issued!`, 'yellow');
@@ -405,6 +467,23 @@ export default function AgentCatalog() {
           >
             <Terminal className="w-4 h-4 text-emerald-400" />
             <span>Interactive A2A Terminal Simulator</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('ledger')}
+            className={`py-3 text-xs font-semibold flex items-center gap-2 border-b-2 transition-colors cursor-pointer ${
+              activeTab === 'ledger'
+                ? 'border-indigo-500 text-white'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <History className="w-4 h-4 text-purple-400" />
+            <span>Buyer Procurement Ledger</span>
+            {ordersSummary?.total_deals > 0 && (
+              <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-purple-500/20 text-purple-300 font-mono font-bold">
+                {ordersSummary.total_deals}
+              </span>
+            )}
           </button>
 
           <button
@@ -763,6 +842,7 @@ export default function AgentCatalog() {
                               razorpay_payment_id: res.data.transaction_id,
                               razorpay_order_id: res.data.razorpay_order_id
                             }));
+                            fetchBuyerOrders();
                           }
                         } catch (e) {
                           toast.error('Settlement error', { id: 'settle' });
@@ -786,7 +866,240 @@ export default function AgentCatalog() {
         </div>
         )}
 
-        {/* TAB 3: API SPECIFICATIONS */}
+        {/* TAB 3: BUYER PROCUREMENT LEDGER */}
+        {activeTab === 'ledger' && (
+          <div className="space-y-6">
+            {/* Header & Refresh */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 rounded-xl bg-[#131622] border border-white/10">
+              <div>
+                <h2 className="text-base font-bold text-white flex items-center gap-2">
+                  <History className="w-4 h-4 text-purple-400" />
+                  <span>Buyer Procurement Audit Ledger</span>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 font-mono border border-purple-500/30">
+                    Defensible Enterprise Records
+                  </span>
+                </h2>
+                <p className="text-xs text-slate-400 mt-1">
+                  Complete historic audit trail of autonomous negotiations, deals closed, capital dispatched, and tax receipts.
+                </p>
+              </div>
+
+              <button
+                onClick={fetchBuyerOrders}
+                disabled={ordersLoading}
+                className="btn btn-secondary text-xs py-1.5 px-3 flex items-center gap-1.5 text-slate-300 border-white/10 hover:bg-white/5 cursor-pointer shrink-0 self-start md:self-auto"
+              >
+                <RotateCw className={`w-3.5 h-3.5 ${ordersLoading ? 'animate-spin text-purple-400' : ''}`} />
+                <span>Refresh Ledger</span>
+              </button>
+            </div>
+
+            {/* Metrics Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="p-3.5 rounded-xl bg-[#141824] border border-white/5 flex flex-col">
+                <span className="text-[10px] uppercase font-mono text-slate-400">Total Deals Closed</span>
+                <span className="text-xl font-bold text-white font-mono mt-1">
+                  {ordersSummary?.total_deals || 0}
+                </span>
+                <span className="text-[10px] text-purple-400 mt-0.5">Autonomous B2B Contracts</span>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-[#141824] border border-white/5 flex flex-col">
+                <span className="text-[10px] uppercase font-mono text-slate-400">Capital Dispatched</span>
+                <span className="text-xl font-bold text-emerald-400 font-mono mt-1">
+                  ₹{(ordersSummary?.total_spend_inr || 0).toLocaleString()}
+                </span>
+                <span className="text-[10px] text-slate-500 mt-0.5">Total settled with 18% GST</span>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-[#141824] border border-white/5 flex flex-col">
+                <span className="text-[10px] uppercase font-mono text-slate-400">Negotiated Savings</span>
+                <span className="text-xl font-bold text-indigo-400 font-mono mt-1">
+                  ₹{(ordersSummary?.total_savings_inr || 0).toLocaleString()}
+                </span>
+                <span className="text-[10px] text-indigo-300/80 mt-0.5">Achieved below Merchant List</span>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-[#141824] border border-white/5 flex flex-col">
+                <span className="text-[10px] uppercase font-mono text-slate-400">Settlement Health</span>
+                <span className="text-xl font-bold text-white font-mono mt-1">
+                  {ordersSummary?.paid_deals || 0} / {ordersSummary?.total_deals || 0}
+                </span>
+                <span className="text-[10px] text-emerald-400 mt-0.5">
+                  {ordersSummary?.pending_payment ? `${ordersSummary.pending_payment} awaiting payment` : '100% Fully Settled'}
+                </span>
+              </div>
+            </div>
+
+            {/* Filter Pills & Agent Persona Selector */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3 rounded-lg bg-[#10131d] border border-white/5 font-mono text-xs">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {[
+                  { id: 'all', label: 'All Orders' },
+                  { id: 'paid', label: 'Paid & Settled' },
+                  { id: 'pending', label: 'Awaiting Payment' },
+                  { id: 'quarantined', label: 'Firewall Blocked' }
+                ].map(f => (
+                  <button
+                    key={f.id}
+                    onClick={() => setLedgerFilter(f.id)}
+                    className={`px-3 py-1 rounded-md transition-colors cursor-pointer text-xs ${
+                      ledgerFilter === f.id
+                        ? 'bg-indigo-600 text-white font-bold shadow-xs'
+                        : 'bg-white/5 text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-slate-400 uppercase">Agent Persona:</span>
+                <select
+                  value={ledgerPersona}
+                  onChange={e => setLedgerPersona(e.target.value)}
+                  className="bg-[#151928] border border-white/10 rounded px-2.5 py-1 text-xs text-slate-200 outline-none focus:border-indigo-500 cursor-pointer"
+                >
+                  <option value="all">All Personas</option>
+                  <option value="reasonable">Apex Global (Reasonable)</option>
+                  <option value="lowballer">Titan Bulk (Lowballer)</option>
+                  <option value="impatient_enterprise">Nexus FastTrack (Impatient)</option>
+                  <option value="floor_tester">Spectre Arbitrage (Floor Tester)</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Orders Feed */}
+            {ordersLoading ? (
+              <div className="p-12 text-center text-slate-500 font-mono text-xs">
+                <RotateCw className="w-5 h-5 animate-spin mx-auto mb-2 text-indigo-400" />
+                <span>Loading procurement records from ledger...</span>
+              </div>
+            ) : buyerOrders.length === 0 ? (
+              <div className="p-12 rounded-xl bg-[#131722] border border-dashed border-white/10 text-center font-mono space-y-2">
+                <History className="w-8 h-8 text-slate-600 mx-auto" />
+                <p className="text-sm text-slate-300 font-bold">No Procurement Records Found</p>
+                <p className="text-xs text-slate-500 max-w-md mx-auto">
+                  Run an autonomous procurement negotiation using the Interactive Terminal Simulator or external CLI script to generate verifiable ledger entries.
+                </p>
+                <button
+                  onClick={() => setActiveTab('simulator')}
+                  className="btn btn-primary text-xs py-1.5 px-3 mt-2 inline-flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Terminal className="w-3.5 h-3.5" />
+                  <span>Launch Terminal Simulator</span>
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {buyerOrders.map(order => (
+                  <div
+                    key={order.session_id}
+                    className="p-4 rounded-xl bg-[#131722] border border-white/10 hover:border-white/20 transition-all font-mono shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4"
+                  >
+                    <div className="space-y-1.5 flex-1 min-w-0">
+                      {/* Top Badges & IDs */}
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs font-bold text-white font-sans">
+                          {order.product_name || order.product_id}
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-mono">
+                          {order.invoice_number}
+                        </span>
+                        <span className="text-[9px] px-2 py-0.5 rounded bg-white/5 text-slate-300 border border-white/10">
+                          {order.buyer_agent_name}
+                        </span>
+                        <span className={`text-[9px] px-2 py-0.5 rounded font-bold ${
+                          order.status === 'quarantined'
+                            ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                            : order.payment_status === 'paid'
+                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                            : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                        }`}>
+                          {order.status === 'quarantined'
+                            ? 'BLOCKED BY FIREWALL'
+                            : order.payment_status === 'paid'
+                            ? 'PAID & CAPTURED'
+                            : 'PAYMENT DUE'}
+                        </span>
+                      </div>
+
+                      {/* Financials & Savings Alpha */}
+                      <div className="flex items-center gap-3 text-xs text-slate-300 flex-wrap">
+                        <span>
+                          {order.quantity} units × ₹{order.final_price_inr || order.list_price_inr}
+                        </span>
+                        <span className="text-slate-600">•</span>
+                        <span>
+                          Total: <strong className="text-white">₹{order.total_inr.toLocaleString()}</strong> (inc. 18% GST)
+                        </span>
+                        {order.savings_inr > 0 && (
+                          <>
+                            <span className="text-slate-600">•</span>
+                            <span className="text-emerald-400 text-[11px] font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+                              🎉 Saved ₹{order.savings_inr.toLocaleString()} ({order.savings_pct}% below List)
+                            </span>
+                          </>
+                        )}
+                      </div>
+
+                      {/* Transaction Meta */}
+                      <div className="text-[10px] text-slate-500 flex items-center gap-3 flex-wrap">
+                        <span>Ref: {order.session_id}</span>
+                        {order.razorpay_payment_id && (
+                          <>
+                            <span>•</span>
+                            <span>TX: {order.razorpay_payment_id}</span>
+                          </>
+                        )}
+                        <span>•</span>
+                        <span>{new Date(order.created_at).toLocaleString('en-IN')}</span>
+                      </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                      <button
+                        onClick={() => handleOpenLedgerDoc(order, 'invoice')}
+                        className="btn btn-secondary py-1.5 px-3 text-xs flex items-center gap-1.5 text-indigo-300 border-indigo-500/30 hover:bg-indigo-500/10 cursor-pointer"
+                        title="View Commercial Tax Invoice"
+                      >
+                        <FileText className="w-3.5 h-3.5" />
+                        <span>Tax Invoice</span>
+                      </button>
+
+                      <button
+                        onClick={() => handleOpenLedgerDoc(order, 'receipt')}
+                        className={`btn btn-secondary py-1.5 px-3 text-xs flex items-center gap-1.5 cursor-pointer ${
+                          order.payment_status === 'paid'
+                            ? 'text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/10'
+                            : 'text-slate-500 border-white/5 opacity-50'
+                        }`}
+                        title={order.payment_status === 'paid' ? 'View Payment Receipt' : 'Receipt available once settled'}
+                      >
+                        <Receipt className="w-3.5 h-3.5" />
+                        <span>Receipt</span>
+                      </button>
+
+                      {order.status === 'deal_closed' && order.payment_status !== 'paid' && (
+                        <button
+                          onClick={() => handleOpenLedgerDoc(order, 'invoice')}
+                          className="btn btn-primary py-1.5 px-3 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-md"
+                        >
+                          <CreditCard className="w-3.5 h-3.5" />
+                          <span>Pay Now</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* TAB 4: API SPECIFICATIONS */}
         {activeTab === 'docs' && (
           <div className="space-y-6">
             <div className="p-4 rounded-xl bg-[#131620] border border-white/10">
@@ -1008,12 +1321,14 @@ export default function AgentCatalog() {
         session={closedSession}
         product={catalog?.items?.find(i => i.sku === closedSession?.product_id) || { name: closedSession?.product_name }}
         role="buyer"
+        initialTab={invoiceInitialTab}
         onPaymentSuccess={(updated) => {
           setClosedSession(prev => ({
             ...prev,
             payment_status: 'paid',
             razorpay_payment_id: updated?.razorpay_payment_id || 'pay_confirmed'
           }));
+          fetchBuyerOrders();
         }}
       />
     </div>
