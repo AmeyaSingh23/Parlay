@@ -14,21 +14,20 @@ let tokenExpiresAt = 0;
  * Uses GoogleAuth (Cloud Run service account or ADC) first,
  * falling back to local gcloud CLI if running on developer workstation.
  */
-async function getGcpAccessToken() {
+async function getGcpAccessToken(forceFresh = false) {
   const now = Date.now();
-  if (cachedToken && now < tokenExpiresAt) {
+  if (!forceFresh && cachedToken && now < tokenExpiresAt) {
     return cachedToken;
   }
 
   // 1. Try GoogleAuth (works natively inside Google Cloud Run)
   try {
-    const client = await auth.getClient();
-    const tokenResponse = await client.getAccessToken();
-    const token = typeof tokenResponse === 'string' ? tokenResponse : tokenResponse?.token;
-    if (token) {
-      cachedToken = token;
-      tokenExpiresAt = now + (45 * 60 * 1000); // 45 minutes
-      return token;
+    const token = await auth.getAccessToken();
+    const tokenVal = typeof token === 'string' ? token : token?.token;
+    if (tokenVal) {
+      cachedToken = tokenVal;
+      tokenExpiresAt = now + (15 * 60 * 1000); // 15 minutes max
+      return tokenVal;
     }
   } catch (authErr) {
     // Fall back to gcloud CLI for local environment
@@ -38,7 +37,7 @@ async function getGcpAccessToken() {
   try {
     const token = execSync('gcloud auth print-access-token', { timeout: 20000 }).toString().trim();
     cachedToken = token;
-    tokenExpiresAt = now + (45 * 60 * 1000); // 45 minutes
+    tokenExpiresAt = now + (15 * 60 * 1000);
     return token;
   } catch (err) {
     console.error('[GeminiClient] Error obtaining token:', err.message);
@@ -58,11 +57,11 @@ async function getGcpAccessToken() {
 async function callGeminiRaw(systemPrompt, history, options = {}) {
   const projectId = process.env.GCP_PROJECT_ID || 'parlay-buildathon';
   const location = process.env.GCP_LOCATION || 'global';
-  const primaryModel = options.model || process.env.GEMINI_MODEL || 'gemini-3.7-flash';
-  const fallbackModel = 'gemini-3.5-flash';
-  const tertiaryModel = 'gemini-2.5-flash';
+  const primaryModel = options.model || process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+  const fallbackModel = 'gemini-2.0-flash';
+  const tertiaryModel = 'gemini-1.5-flash';
 
-  const token = await getGcpAccessToken();
+  let token = await getGcpAccessToken();
 
   const hostname = location === 'global'
     ? 'aiplatform.googleapis.com'
@@ -147,15 +146,25 @@ async function callGeminiRaw(systemPrompt, history, options = {}) {
     });
   };
 
-  // 1. Try primary model (gemini-3.7-flash)
+  // 1. Try primary model (gemini-2.5-flash)
   let result = await attempt(primaryModel);
+  if (!result.ok && result.status === 401) {
+    console.warn(`[GeminiClient] Received 401 from ${primaryModel}. Refreshing token and retrying...`);
+    token = await getGcpAccessToken(true);
+    result = await attempt(primaryModel);
+  }
+
   if (!result.ok) {
     console.warn(`[GeminiClient] ${primaryModel} returned status ${result.status}. Attempting fallback ${fallbackModel}...`);
-    // 2. Try fallback (gemini-3.5-flash)
+    // 2. Try fallback (gemini-2.0-flash)
     result = await attempt(fallbackModel);
+    if (!result.ok && result.status === 401) {
+      token = await getGcpAccessToken(true);
+      result = await attempt(fallbackModel);
+    }
     if (!result.ok) {
       console.warn(`[GeminiClient] Fallback ${fallbackModel} failed. Attempting ${tertiaryModel}...`);
-      // 3. Try tertiary fallback (gemini-2.5-flash)
+      // 3. Try tertiary fallback (gemini-1.5-flash)
       result = await attempt(tertiaryModel);
       if (!result.ok) {
         console.error(`[GeminiClient] All cloud models failed. Using deterministic fallback.`);
