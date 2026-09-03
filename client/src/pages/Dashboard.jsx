@@ -159,6 +159,17 @@ export default function Dashboard() {
       }
     };
 
+    const handleExternalRfq = (data) => {
+      toast(`🤖 External Agent Connected: ${data.buyer_agent_name} RFQ for ${data.quantity} units!`, {
+        icon: '⚡',
+        duration: 8000
+      });
+      fetchSessions();
+      if (data.session_id) {
+        handleSelectSession(data.session_id);
+      }
+    };
+
     socket.on('negotiation:turn', handleTurn);
     socket.on('negotiation:firewall', handleFirewall);
     socket.on('negotiation:hitl_required', handleHitl);
@@ -167,6 +178,7 @@ export default function Dashboard() {
     socket.on('inventory:updated', handleInventoryUpdated);
     socket.on('payment:success', handlePaymentSuccess);
     socket.on('negotiation:global_update', handleGlobalUpdate);
+    socket.on('negotiation:external_rfq', handleExternalRfq);
 
     return () => {
       socket.off('negotiation:turn', handleTurn);
@@ -177,6 +189,7 @@ export default function Dashboard() {
       socket.off('inventory:updated', handleInventoryUpdated);
       socket.off('payment:success', handlePaymentSuccess);
       socket.off('negotiation:global_update', handleGlobalUpdate);
+      socket.off('negotiation:external_rfq', handleExternalRfq);
     };
   }, [socket]);
 
@@ -292,10 +305,10 @@ export default function Dashboard() {
       {/* Top Navbar */}
       <Navbar onOpenFloorModal={() => setIsFloorModalOpen(true)} />
 
-      {/* Main 3-Column Arena Layout (Fixed 100vh Shell) */}
-      <main className="flex-1 max-w-[1600px] w-full mx-auto p-3 grid grid-cols-1 lg:grid-cols-12 gap-3 min-h-0 overflow-hidden">
-        {/* Left Column: Setup (3 cols) */}
-        <div className="lg:col-span-3 h-full min-h-0 overflow-hidden">
+      {/* Main Layout: Fixed 3-Column 100vh Desktop shell, spacious scrollable stack in Split View */}
+      <main className="flex-1 max-w-[1600px] w-full mx-auto p-3 flex flex-col gap-4 overflow-y-auto lg:overflow-hidden lg:grid lg:grid-cols-12 lg:gap-3 min-h-0">
+        {/* Left Column: Commercial Policy Desk (3 cols on desktop, 500px in split view) */}
+        <div className="flex-none h-[500px] lg:h-full lg:min-h-0 lg:col-span-3 overflow-hidden flex flex-col">
           <ProductSelector
             products={products}
             selectedProduct={selectedProduct}
@@ -307,11 +320,12 @@ export default function Dashboard() {
             onChangeQuantity={setQuantity}
             onStartNegotiation={handleStartNegotiation}
             isNegotiating={isNegotiating}
+            onOpenFloorModal={() => setIsFloorModalOpen(true)}
           />
         </div>
 
-        {/* Center Column: Live Arena (6 cols) */}
-        <div className="lg:col-span-6 h-full min-h-0 overflow-hidden">
+        {/* Center Column: Live Arena (6 cols on desktop, 620px in split view) */}
+        <div className="flex-none h-[620px] lg:h-full lg:min-h-0 lg:col-span-6 overflow-hidden flex flex-col">
           <TranscriptPanel
             session={currentSession}
             messages={messages}
@@ -322,8 +336,8 @@ export default function Dashboard() {
           />
         </div>
 
-        {/* Right Column: Audit Log (3 cols) */}
-        <div className="lg:col-span-3 h-full min-h-0 overflow-hidden">
+        {/* Right Column: Audit Log (3 cols on desktop, 440px in split view) */}
+        <div className="flex-none h-[440px] lg:h-full lg:min-h-0 lg:col-span-3 overflow-hidden flex flex-col">
           <SessionList
             sessions={sessions}
             currentSessionId={currentSession?.session_id}

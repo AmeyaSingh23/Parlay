@@ -7,6 +7,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import PublicCheckout from './pages/PublicCheckout';
+import AgentCatalog from './pages/AgentCatalog';
 
 export default function App() {
   return (
@@ -50,6 +51,8 @@ export default function App() {
             />
             {/* Public standalone hosted checkout page for buyer payment links */}
             <Route path="/pay/:sessionId" element={<PublicCheckout />} />
+            {/* Public browsable Agent Catalog & A2A Gateway Hub */}
+            <Route path="/catalog" element={<AgentCatalog />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Router>

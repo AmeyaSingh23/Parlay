@@ -1,5 +1,6 @@
 import React from 'react';
-import { ShieldCheck, Sliders, LogOut, CreditCard } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ShieldCheck, Sliders, LogOut, CreditCard, Bot } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useSocketStatus } from '../context/SocketContext';
 
@@ -41,15 +42,25 @@ export default function Navbar({ onOpenFloorModal }) {
             <span>Razorpay Sandbox</span>
           </div>
 
-          {/* Floor Mutator Tool Button */}
+          {/* Commercial Pricing & Policy Manager Button */}
           <button
             onClick={onOpenFloorModal}
             className="btn btn-secondary text-[10px] font-mono py-1 px-2.5 flex items-center gap-1 text-slate-200 border-white/10 hover:bg-white/5"
-            title="Adjust live floor price in MongoDB"
+            title="Configure List, Target, Floor Prices & Discount Ladders in MongoDB"
           >
             <Sliders className="w-3 h-3 text-slate-300" />
-            <span>Adjust Price Floor</span>
+            <span>Manage Pricing & Floor</span>
           </button>
+
+          {/* Agent-Readable Catalog & API Hub Link */}
+          <Link
+            to="/catalog"
+            className="btn btn-secondary text-[10px] font-mono py-1 px-2.5 flex items-center gap-1.5 text-indigo-300 border-indigo-500/30 bg-indigo-950/30 hover:bg-indigo-900/40"
+            title="Agent-Readable Catalog & A2A Gateway Hub"
+          >
+            <Bot className="w-3 h-3 text-indigo-400" />
+            <span>Agent Catalog & API</span>
+          </Link>
 
           {/* User Profile / Logout */}
           {user && (
