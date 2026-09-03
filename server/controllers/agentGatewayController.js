@@ -532,7 +532,9 @@ const handleAgentNegotiate = async (req, res) => {
     if (merchantTurn.proposed_price !== null && merchantTurn.proposed_price !== undefined) {
       fwCheck = await firewallCheck(merchantTurn.proposed_price, product.product_id);
     }
-    const buyerFwCheck = numericOffer ? await firewallCheck(numericOffer, product.product_id) : null;
+    if (!buyerFwCheck && numericOffer) {
+      buyerFwCheck = await firewallCheck(numericOffer, product.product_id);
+    }
     const isChronicLowballer = (session.buyer_persona?.includes('lowballer') || customerProfile?.loyalty_tier === 'CHRONIC_LOWBALLER') && numericOffer < product.target_price && session.rounds_count >= 2;
 
     if ((fwCheck?.needs_hitl || buyerFwCheck?.needs_hitl || isChronicLowballer) && !session.hitl_action) {
