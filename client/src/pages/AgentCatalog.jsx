@@ -102,10 +102,17 @@ export default function AgentCatalog() {
       ]);
     };
 
+    const handleGlobalNegotiationUpdate = () => {
+      fetchBuyerOrders();
+      fetchCustomerProfiles();
+    };
+
     socket.on('inventory:updated', handleInventoryUpdated);
+    socket.on('negotiation:global_update', handleGlobalNegotiationUpdate);
 
     return () => {
       socket.off('inventory:updated', handleInventoryUpdated);
+      socket.off('negotiation:global_update', handleGlobalNegotiationUpdate);
     };
   }, [socket]);
 
@@ -363,7 +370,7 @@ const getBuyerDialogue = (persona, round, qty, bid) => {
               const finalPrice = mResp.proposed_price_inr || myBid;
               log(`\n🤝 MUTUAL AGREEMENT REACHED at ₹${finalPrice}/unit!`, 'green');
 
-              await axios.post('/agent/negotiate', {
+              const closeRes = await axios.post('/agent/negotiate', {
                 session_id: session.session_id,
                 offered_price: finalPrice,
                 message: `Agreed. We accept ₹${finalPrice}/unit for ${activeQty} units. Proforma commercial invoice confirmed.`,
@@ -381,7 +388,7 @@ const getBuyerDialogue = (persona, round, qty, bid) => {
                 final_price: finalPrice,
                 status: 'deal_closed',
                 payment_status: 'pending',
-                razorpay_order_id: `order_${session.session_id.substring(8, 22)}`
+                razorpay_order_id: closeRes.data?.razorpay_order_id || `order_${session.session_id.substring(8, 22)}`
               };
               setClosedSession(closedSessionData);
               fetchBuyerOrders();
@@ -1484,13 +1491,38 @@ const getBuyerDialogue = (persona, round, qty, bid) => {
                           </button>
 
                           {order.status === 'deal_closed' && order.payment_status !== 'paid' && (
-                            <button
-                              onClick={() => handleOpenLedgerDoc(order, 'invoice')}
-                              className="btn btn-primary py-1.5 px-3 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-md"
-                            >
-                              <CreditCard className="w-3.5 h-3.5" />
-                              <span>Pay with Razorpay</span>
-                            </button>
+                            <>
+                              <button
+                                onClick={() => handleOpenLedgerDoc(order, 'invoice')}
+                                className="btn btn-primary py-1.5 px-3 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-md"
+                              >
+                                <CreditCard className="w-3.5 h-3.5" />
+                                <span>Pay with Razorpay</span>
+                              </button>
+                              <button
+                                onClick={async () => {
+                                  try {
+                                    toast.loading('Executing autonomous mandate settlement...', { id: `settle-${order.session_id}` });
+                                    const res = await axios.post('/agent/settle', {
+                                      session_id: order.session_id,
+                                      max_authorized_budget: order.final_price_inr || 999999
+                                    });
+                                    if (res.data.success) {
+                                      toast.success('Invoice Settled & Captured Autonomously!', { id: `settle-${order.session_id}` });
+                                      fetchBuyerOrders();
+                                      fetchCustomerProfiles();
+                                    }
+                                  } catch (e) {
+                                    toast.error(e.response?.data?.message || 'Settlement error', { id: `settle-${order.session_id}` });
+                                  }
+                                }}
+                                className="btn btn-secondary py-1.5 px-3 text-xs font-bold flex items-center gap-1.5 text-amber-300 border-amber-500/30 hover:bg-amber-500/10 cursor-pointer"
+                                title="Execute Autonomous Machine-to-Machine settlement via pre-authorized budget mandate"
+                              >
+                                <Zap className="w-3.5 h-3.5 text-amber-400" />
+                                <span>Auto Settle (M2M)</span>
+                              </button>
+                            </>
                           )}
                         </>
                       )}

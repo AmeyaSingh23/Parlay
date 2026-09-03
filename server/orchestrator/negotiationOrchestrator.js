@@ -238,15 +238,18 @@ class NegotiationOrchestrator {
       // Walk-away Retention Protocol (triggers HITL when buyer threatens no_deal)
       if (buyerTurn.action === 'no_deal') {
         if (product.negotiable && session.rounds_count >= 3 && !session.hitl_action) {
-          const retentionPrice = Math.max(product.floor_price, Math.round(product.floor_price * 1.03));
+          const buyerPrice = buyerTurn.offered_price;
+          const retentionPrice = (buyerPrice && buyerPrice >= product.floor_price)
+            ? buyerPrice
+            : Math.max(product.floor_price, Math.round(product.floor_price * 1.03));
           console.log(`[Orchestrator] Walk-away Retention triggered for ${session.session_id} at ₹${retentionPrice}`);
 
           const retentionMsg = await NegotiationMessage.create({
             session_id: sessionId,
             sender: 'merchant',
-            message: `Before you walk away — we value long-term enterprise procurement relationships. For an order of ${session.quantity} ${product.unit || 'units'}, our executive pricing desk can authorize a one-time retention concession at ₹${retentionPrice}/unit (subject to immediate management approval).`,
+            message: `Before you walk away — we value long-term enterprise procurement relationships. For an order of ${session.quantity} ${product.unit || 'units'}, our executive pricing desk can authorize a retention concession at ₹${retentionPrice}/unit (subject to immediate management approval).`,
             proposed_price: retentionPrice,
-            policy_reason: `WALKAWAY_RETENTION_PROTOCOL: Executive floor discount ₹${retentionPrice} to retain bulk client. Escalating to Human Merchant review.`,
+            policy_reason: `WALKAWAY_RETENTION_PROTOCOL: Executive retention concession at ₹${retentionPrice} to retain bulk client. Escalating to Human Merchant review.`,
             firewall_result: 'pass',
             round: session.rounds_count
           });

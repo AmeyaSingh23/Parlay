@@ -112,8 +112,9 @@ export default function InvoiceModal({ isOpen, onClose, session, product, onPaym
     try {
       let activeOrderId = session.razorpay_order_id;
 
-      // Ensure we have a valid test order ID from backend
-      if (!activeOrderId || activeOrderId.startsWith('order_err_') || activeOrderId.startsWith('order_sim_') || activeOrderId.startsWith('order_test_')) {
+      // Genuine Razorpay order IDs are e.g. order_TXYGqzOO8hy9zD (starts with order_ followed by alphanumeric, no extra underscores)
+      const isGenuineRazorpayOrderId = activeOrderId && /^order_[A-Za-z0-9]{14,20}$/.test(activeOrderId);
+      if (!isGenuineRazorpayOrderId) {
         const orderRes = await axios.post('/payment/create-order', {
           totalPrice: totalAmount
         });

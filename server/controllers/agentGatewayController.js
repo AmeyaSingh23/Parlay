@@ -405,18 +405,22 @@ const handleAgentNegotiate = async (req, res) => {
     // 4. Check if merchant declared no_deal (Walkaway Retention Protocol)
     if (merchantTurn.action === 'no_deal') {
       if (product.negotiable && session.rounds_count >= 3 && !session.hitl_action) {
-        const retentionPrice = Math.max(product.floor_price, Math.round(product.floor_price * 1.03));
+        // Retention price should match buyer's bid if at or above floor; never undercut the buyer's own bid!
+        const retentionPrice = (numericOffer && numericOffer >= product.floor_price)
+          ? numericOffer
+          : Math.max(product.floor_price, Math.round(product.floor_price * 1.03));
+
         session.status = 'pending_hitl';
         session.pending_proposed_price = retentionPrice;
-        session.hitl_reason = `Executive walk-away retention discount at ₹${retentionPrice}/unit (Floor: ₹${product.floor_price}). Client threatened order withdrawal — Requires Merchant approval.`;
+        session.hitl_reason = `Executive walk-away retention at ₹${retentionPrice}/unit (Floor: ₹${product.floor_price}). Client reached budget ceiling — Requires Merchant approval.`;
         await session.save();
 
         const retentionMsg = await NegotiationMessage.create({
           session_id: session.session_id,
           sender: 'merchant',
-          message: `Before you walk away — we value long-term enterprise procurement relationships. For an order of ${session.quantity} ${product.unit || 'units'}, our executive pricing desk can authorize a one-time retention concession at ₹${retentionPrice}/unit (subject to immediate management approval).`,
+          message: `Before you walk away — we value long-term enterprise procurement relationships. For an order of ${session.quantity} ${product.unit || 'units'}, our executive pricing desk can authorize a retention concession at ₹${retentionPrice}/unit (subject to immediate management approval).`,
           proposed_price: retentionPrice,
-          policy_reason: `WALKAWAY_RETENTION_PROTOCOL: Executive floor discount ₹${retentionPrice} to retain bulk client. Escalating to Human Merchant review.`,
+          policy_reason: `WALKAWAY_RETENTION_PROTOCOL: Executive retention concession at ₹${retentionPrice} to retain bulk client. Escalating to Human Merchant review.`,
           firewall_result: 'pass',
           round: session.rounds_count
         });
