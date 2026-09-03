@@ -60,6 +60,7 @@ Parlay decouples **creative dialogue negotiation** from **financial transaction 
 
 ---
 
+<a id="3-architecture--transaction-flow"></a>
 ## 3. Architecture & Transaction Flow
 
 ### High-Level System Architecture
@@ -171,6 +172,7 @@ sequenceDiagram
 
 ---
 
+<a id="4-simulated-vs-real-world-production-mapping"></a>
 ## 4. Simulated vs. Real-World Production Mapping
 
 To enable frictionless evaluation during the hackathon without requiring judges to set up multi-server agent pipelines or enter real corporate credit cards, Parlay implements a production-accurate simulation layer:
@@ -187,6 +189,7 @@ To enable frictionless evaluation during the hackathon without requiring judges 
 
 ---
 
+<a id="5-live-split-screen-evaluation-walkthrough"></a>
 ## 5. Live Split-Screen Evaluation Walkthrough
 
 To witness Parlay's real-time multi-agent negotiation, WebSocket streaming, and deterministic firewall in action, open two browser windows side-by-side:
@@ -241,9 +244,9 @@ To witness Parlay's real-time multi-agent negotiation, WebSocket streaming, and 
    * A cryptographic transaction ID (`pay_ext_m2m_...`) and downloadable B2B Tax Receipt are generated instantly.
    * The order is committed to the **Buyer Procurement Ledger** and the Merchant Audit Trail.
 
----
-
-### 💻 A2A Terminal CLI Command Reference
+<a id="a2a-terminal-cli-command-reference"></a>
+<a name="a2a-terminal-cli-command-reference"></a>
+### A2A Terminal CLI Command Reference 💻
 
 The built-in A2A terminal simulator is a comprehensive, interactive command-line harness supporting parameters, state overrides, and real-time inventory queries:
 
@@ -262,6 +265,7 @@ The built-in A2A terminal simulator is a comprehensive, interactive command-line
 
 ---
 
+<a id="6-self-hosting--deployment-guide-on-google-cloud-run"></a>
 ## 6. Self-Hosting & Deployment Guide on Google Cloud Run
 
 Parlay is fully containerized using a production multi-stage Dockerfile and deploys to **Google Cloud Run** in any GCP project with a single command.
