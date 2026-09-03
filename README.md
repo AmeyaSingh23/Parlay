@@ -253,6 +253,38 @@ To witness Parlay's real-time multi-agent negotiation, WebSocket streaming, and 
    * If the buyer's budget ceiling cannot meet the merchant's target price, the session terminates cleanly with a **`NO_DEAL`** audit state.
    * The system logs a graceful exit reason without creating any phantom payment orders, preserving inventory availability.
 
+---
+
+### 💼 Enterprise Merchant Control, Audit & Public A2A Gateway
+
+Beyond basic multi-agent dialogue, Parlay provides enterprise B2B merchants with full financial control, counterparty risk intelligence, and standard external interfaces:
+
+#### 1. Dynamic Commercial Policy Desk & Real-Time Floor Mutator
+* **Live Margin Control:** On the Merchant Dashboard, sellers can dynamically tweak **List Price**, **Target Price**, and **Floor Price** using interactive sliders.
+* **Instant Dynamic Adaptation:** Modifying a floor price immediately updates the MongoDB database. On the very next round of an ongoing or new negotiation, the Gemini sales agent and the Deterministic Firewall instantly re-anchor to the new floor without server restarts or model retraining.
+
+#### 2. Counterparty Credit Intelligence Dossier (Episodic Memory)
+* Located in the **Live Arena Header** on the dashboard, clicking the reputation bar opens an in-depth intelligence drawer tracking:
+  * **Trust Score (0–100):** Governs how fast the agent concedes discounts. High trust (>60) unlocks preferred wholesale brackets; low trust (<30) restricts concessions.
+  * **Lifetime Spend (LTV in ₹):** Aggregated revenue across all completed B2B orders.
+  * **Lowball Strike Counter:** Each below-floor bid or aggressive stall logs strikes on the buyer's permanent profile.
+  * **Trust Rehabilitation:** Successfully settling a transaction awards `+5` points to the customer's trust score, encouraging ethical buyer behavior.
+
+#### 3. B2B GST Proforma Invoice & Cryptographic Receipt Generation
+* When any negotiation closes (via M2M Auto Settle or Manual Checkout), Parlay automatically compiles a full **B2B Commercial Tax Invoice**:
+  * Formal Invoice Number (`INV-PAR-XXXX`) with merchant and buyer corporate identities.
+  * Itemized wholesale base amount + 18% GST (9% CGST + 9% SGST).
+  * Razorpay Order ID, Payment Transaction ID, and digital authorization stamp.
+  * One-click printable and downloadable receipt modal for enterprise accounts payable.
+
+#### 4. Real External Public A2A REST API & Model Context Protocol (MCP)
+**Parlay is not an isolated sandbox.** Any external bot, autonomous script, or enterprise agent framework (LangChain, CrewAI, AutoGen, Claude Desktop) can negotiate and settle directly against the live production server using real HTTP requests or MCP tool calls:
+* **`POST /api/agent/rfq`**: Submit Request for Quote with SKU, quantity, and buyer identity.
+* **`POST /api/agent/negotiate`**: Transact counter-offers and review policy justifications.
+* **`POST /api/agent/settle`**: Execute programmatic pre-authorized mandate settlement.
+* **`GET /api/agent/catalog`**: Query machine-readable inventory stock and volume discount ladders.
+* **MCP Tool Schema**: View the `/catalog -> MCP Tool Definition` tab for ready-to-use Model Context Protocol integration.
+
 <a id="a2a-terminal-cli-command-reference"></a>
 <a name="a2a-terminal-cli-command-reference"></a>
 ### A2A Terminal CLI Command Reference 💻
