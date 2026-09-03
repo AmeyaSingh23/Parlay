@@ -8,7 +8,9 @@ export const SocketProvider = ({ children }) => {
   const [connected, setConnected] = useState(false);
 
   useEffect(() => {
-    const serverUrl = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
+    const serverUrl = import.meta.env.VITE_API_URL
+      ? (import.meta.env.VITE_API_URL.startsWith('http') ? import.meta.env.VITE_API_URL.replace('/api', '') : '/')
+      : (typeof window !== 'undefined' && window.location.hostname === 'localhost' ? 'http://localhost:5000' : '/');
     const s = io(serverUrl, {
       transports: ['websocket', 'polling'],
       reconnectionAttempts: 10,

@@ -1,27 +1,49 @@
 const https = require('https');
 const { execSync } = require('child_process');
+const { GoogleAuth } = require('google-auth-library');
+
+const auth = new GoogleAuth({
+  scopes: ['https://www.googleapis.com/auth/cloud-platform']
+});
 
 let cachedToken = null;
 let tokenExpiresAt = 0;
 
 /**
- * Retrieves a valid GCP OAuth access token using gcloud CLI.
- * Cached for 45 minutes to minimize subshell overhead.
+ * Retrieves a valid GCP OAuth access token.
+ * Uses GoogleAuth (Cloud Run service account or ADC) first,
+ * falling back to local gcloud CLI if running on developer workstation.
  */
-function getGcpAccessToken() {
+async function getGcpAccessToken() {
   const now = Date.now();
   if (cachedToken && now < tokenExpiresAt) {
     return cachedToken;
   }
+
+  // 1. Try GoogleAuth (works natively inside Google Cloud Run)
+  try {
+    const client = await auth.getClient();
+    const tokenResponse = await client.getAccessToken();
+    const token = typeof tokenResponse === 'string' ? tokenResponse : tokenResponse?.token;
+    if (token) {
+      cachedToken = token;
+      tokenExpiresAt = now + (45 * 60 * 1000); // 45 minutes
+      return token;
+    }
+  } catch (authErr) {
+    // Fall back to gcloud CLI for local environment
+  }
+
+  // 2. Fallback to gcloud CLI
   try {
     const token = execSync('gcloud auth print-access-token', { timeout: 20000 }).toString().trim();
     cachedToken = token;
     tokenExpiresAt = now + (45 * 60 * 1000); // 45 minutes
     return token;
   } catch (err) {
-    console.error('[GeminiClient] Error obtaining gcloud token:', err.message);
+    console.error('[GeminiClient] Error obtaining token:', err.message);
     if (cachedToken) return cachedToken;
-    throw new Error('GCP authentication failed. Please ensure gcloud auth is configured.');
+    throw new Error('GCP authentication failed. Please ensure gcloud or service account credentials exist.');
   }
 }
 
@@ -40,7 +62,7 @@ async function callGeminiRaw(systemPrompt, history, options = {}) {
   const fallbackModel = 'gemini-3.5-flash';
   const tertiaryModel = 'gemini-2.5-flash';
 
-  const token = getGcpAccessToken();
+  const token = await getGcpAccessToken();
 
   const hostname = location === 'global'
     ? 'aiplatform.googleapis.com'

@@ -81,6 +81,26 @@ app.use('/api/users', authRoutes);
 app.use('/api/payment', paymentRoutes);
 app.use('/api/agent', agentRoutes);
 
+// Serve static built frontend in production
+const path = require('path');
+const fs = require('fs');
+const clientDistPath = path.join(__dirname, 'public');
+const fallbackDistPath = path.join(__dirname, '../client/dist');
+const staticPath = fs.existsSync(clientDistPath)
+  ? clientDistPath
+  : (fs.existsSync(fallbackDistPath) ? fallbackDistPath : null);
+
+if (staticPath) {
+  console.log(`📦 Serving compiled static client from: ${staticPath}`);
+  app.use(express.static(staticPath));
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api') || req.path.startsWith('/socket.io')) {
+      return next();
+    }
+    res.sendFile(path.join(staticPath, 'index.html'));
+  });
+}
+
 // Connect to MongoDB and start server
 const PORT = process.env.PORT || 5000;
 
