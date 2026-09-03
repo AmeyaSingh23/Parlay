@@ -527,46 +527,54 @@ const handleAgentNegotiate = async (req, res) => {
       });
     }
 
-    // 5. Check near-floor HITL condition on merchant proposed price
+    // 5. Check near-floor HITL condition on merchant proposed price OR buyer lowballer bid
     let fwCheck = null;
     if (merchantTurn.proposed_price !== null && merchantTurn.proposed_price !== undefined) {
       fwCheck = await firewallCheck(merchantTurn.proposed_price, product.product_id);
-      if (fwCheck.needs_hitl && !session.hitl_action) {
-        session.status = 'pending_hitl';
-        session.pending_proposed_price = merchantTurn.proposed_price;
-        session.hitl_reason = fwCheck.reason;
-        await session.save();
+    }
+    const buyerFwCheck = numericOffer ? await firewallCheck(numericOffer, product.product_id) : null;
+    const isChronicLowballer = (session.buyer_persona?.includes('lowballer') || customerProfile?.loyalty_tier === 'CHRONIC_LOWBALLER') && numericOffer < product.target_price && session.rounds_count >= 2;
 
-        const hitlMsg = await NegotiationMessage.create({
-          session_id,
-          sender: 'merchant',
-          message: merchantTurn.message,
-          proposed_price: merchantTurn.proposed_price,
-          policy_reason: 'HITL_NEAR_FLOOR_APPROVAL_REQUIRED',
-          firewall_result: 'pass',
-          round: session.rounds_count
-        });
+    if ((fwCheck?.needs_hitl || buyerFwCheck?.needs_hitl || isChronicLowballer) && !session.hitl_action) {
+      const hitlPrice = merchantTurn.proposed_price || numericOffer || product.floor_price;
+      session.status = 'pending_hitl';
+      session.pending_proposed_price = hitlPrice;
+      session.hitl_reason = isChronicLowballer
+        ? `Executive governance policy: Chronic Lowballer (Titan Bulk Liquidators, Trust: ${customerProfile?.trust_score || 25}) bidding below target margin (₹${numericOffer}/unit). Requires Human Merchant approval.`
+        : (fwCheck?.reason || buyerFwCheck?.reason || 'Near floor boundary margin reached.');
+      await session.save();
 
-        if (io) {
-          io.to(session_id).emit('negotiation:turn', hitlMsg);
-          io.to(session_id).emit('negotiation:hitl_required', { session, message: hitlMsg });
-          io.emit('negotiation:global_update', { sessionId: session_id, event: 'negotiation:hitl_required', data: { session, message: hitlMsg } });
-        }
+      const hitlMsg = await NegotiationMessage.create({
+        session_id,
+        sender: 'merchant',
+        message: isChronicLowballer
+          ? `⏸️ [HUMAN-IN-THE-LOOP REQUIRED] Titan Bulk Liquidators is bidding at ₹${numericOffer}/unit (below target margin). Autonomous concession halted awaiting Merchant Executive sign-off.`
+          : merchantTurn.message,
+        proposed_price: hitlPrice,
+        policy_reason: 'HITL_LOWBALLER_APPROVAL_REQUIRED',
+        firewall_result: 'pass',
+        round: session.rounds_count
+      });
 
-        return res.json({
-          status: 'pending_hitl',
-          session_id,
-          current_round: session.rounds_count,
-          pending_price: merchantTurn.proposed_price,
-          message: 'Proposed price is near minimum floor boundary. Session paused awaiting Merchant Executive authorization.',
-          merchant_response: {
-            message: merchantTurn.message,
-            proposed_price_inr: merchantTurn.proposed_price,
-            policy_reason: 'HITL_NEAR_FLOOR_APPROVAL_REQUIRED',
-            action: 'pending_hitl'
-          }
-        });
+      if (io) {
+        io.to(session_id).emit('negotiation:turn', hitlMsg);
+        io.to(session_id).emit('negotiation:hitl_required', { session, message: hitlMsg });
+        io.emit('negotiation:global_update', { sessionId: session_id, event: 'negotiation:hitl_required', data: { session, message: hitlMsg } });
       }
+
+      return res.json({
+        status: 'pending_hitl',
+        session_id,
+        current_round: session.rounds_count,
+        pending_price: hitlPrice,
+        message: 'Proposed price is near minimum floor boundary or involves Chronic Lowballer. Session paused awaiting Merchant Executive authorization.',
+        merchant_response: {
+          message: hitlMsg.message,
+          proposed_price_inr: hitlPrice,
+          policy_reason: 'HITL_LOWBALLER_APPROVAL_REQUIRED',
+          action: 'pending_hitl'
+        }
+      });
     }
 
     const merchantMsg = await NegotiationMessage.create({
