@@ -7,6 +7,9 @@ try {
 const mongoose = require('mongoose');
 const MerchantInventoryItem = require('./models/MerchantInventoryItem');
 const User = require('./models/User');
+const CustomerProfile = require('./models/CustomerProfile');
+const NegotiationSession = require('./models/NegotiationSession');
+const NegotiationMessage = require('./models/NegotiationMessage');
 
 const sampleProducts = [
   {
@@ -109,20 +112,93 @@ const sampleProducts = [
   }
 ];
 
+const baselineCustomerProfiles = [
+  {
+    buyer_id: 'apex_global',
+    company_name: 'Apex Global Procurement',
+    persona_key: 'reasonable',
+    trust_score: 65,
+    loyalty_tier: 'GROWTH_ACCOUNT',
+    discount_elasticity_bonus: 1.5,
+    lowball_strikes: 0,
+    deals_closed_count: 0,
+    deals_attempted_count: 0,
+    lifetime_spend_inr: 0,
+    payment_reliability_score: 100,
+    last_deal_summary: 'Account initialized in Parlay Commerce Gateway.',
+    last_negotiated_at: null
+  },
+  {
+    buyer_id: 'titan_bulk',
+    company_name: 'Titan Bulk Liquidators',
+    persona_key: 'lowballer',
+    trust_score: 25,
+    loyalty_tier: 'CHRONIC_LOWBALLER',
+    discount_elasticity_bonus: -3,
+    lowball_strikes: 2,
+    deals_closed_count: 0,
+    deals_attempted_count: 0,
+    lifetime_spend_inr: 0,
+    payment_reliability_score: 100,
+    last_deal_summary: 'Account initialized in Parlay Commerce Gateway.',
+    last_negotiated_at: null
+  },
+  {
+    buyer_id: 'nexus_logistics',
+    company_name: 'Nexus FastTrack Logistics',
+    persona_key: 'impatient_enterprise',
+    trust_score: 55,
+    loyalty_tier: 'GROWTH_ACCOUNT',
+    discount_elasticity_bonus: 1.5,
+    lowball_strikes: 0,
+    deals_closed_count: 0,
+    deals_attempted_count: 0,
+    lifetime_spend_inr: 0,
+    payment_reliability_score: 100,
+    last_deal_summary: 'Account initialized in Parlay Commerce Gateway.',
+    last_negotiated_at: null
+  },
+  {
+    buyer_id: 'spectre_arbitrage',
+    company_name: 'Spectre Automated Arbitrage',
+    persona_key: 'floor_tester',
+    trust_score: 20,
+    loyalty_tier: 'CHRONIC_LOWBALLER',
+    discount_elasticity_bonus: -3,
+    lowball_strikes: 3,
+    deals_closed_count: 0,
+    deals_attempted_count: 0,
+    lifetime_spend_inr: 0,
+    payment_reliability_score: 100,
+    last_deal_summary: 'Account initialized in Parlay Commerce Gateway.',
+    last_negotiated_at: null
+  }
+];
+
 const seedDB = async () => {
   try {
     if (!process.env.MONGO_URI) {
       throw new Error('MONGO_URI is not set in environment');
     }
     await mongoose.connect(process.env.MONGO_URI);
-    console.log('MongoDB connected for seeding...');
+    console.log('MongoDB connected for seeding baseline...');
 
+    // 1. Reset Inventory Items (6 items)
     await MerchantInventoryItem.deleteMany({});
-    console.log('Cleared existing inventory items.');
+    const insertedItems = await MerchantInventoryItem.insertMany(sampleProducts);
+    console.log(`Successfully seeded ${insertedItems.length} MerchantInventoryItems.`);
 
-    const inserted = await MerchantInventoryItem.insertMany(sampleProducts);
-    console.log(`Successfully seeded ${inserted.length} MerchantInventoryItems.`);
+    // 2. Reset Customer Profiles (4 accounts with baseline trust scores & strikes)
+    await CustomerProfile.deleteMany({});
+    const insertedProfiles = await CustomerProfile.insertMany(baselineCustomerProfiles);
+    console.log(`Successfully seeded ${insertedProfiles.length} CustomerProfiles.`);
 
+    // 3. Clear all active negotiations and messages for clean state
+    await NegotiationSession.deleteMany({});
+    await NegotiationMessage.deleteMany({});
+    console.log('Cleared all active negotiation sessions & audit messages.');
+
+    // 4. Ensure Merchant Admin login exists
     const adminEmail = 'merchant@parlay.ai';
     const existingAdmin = await User.findOne({ email: adminEmail });
     if (!existingAdmin) {
@@ -134,10 +210,10 @@ const seedDB = async () => {
       });
       console.log('Created default merchant admin: merchant@parlay.ai / password123');
     } else {
-      console.log('Admin user already exists.');
+      console.log('Admin user verified: merchant@parlay.ai');
     }
 
-    console.log('Database seeded successfully!');
+    console.log('Base reset complete! 6 products, 4 customer profiles, merchant admin, 0 sessions.');
     process.exit(0);
   } catch (err) {
     console.error('Seeding failed:', err);

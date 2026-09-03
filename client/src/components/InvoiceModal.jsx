@@ -4,8 +4,6 @@ import {
   X,
   CreditCard,
   CheckCircle2,
-  Copy,
-  ExternalLink,
   Zap,
   Printer,
   Receipt,
@@ -20,7 +18,7 @@ export default function InvoiceModal({ isOpen, onClose, session, product, onPaym
   const isAlreadyPaid = session.payment_status === 'paid';
   const [isPaying, setIsPaying] = useState(false);
   const [isPaid, setIsPaid] = useState(isAlreadyPaid);
-  const [docView, setDocView] = useState(initialTab || 'invoice'); // 'invoice' | 'receipt'
+  const [docView, setDocView] = useState(initialTab || 'invoice');
   const [paymentDetails, setPaymentDetails] = useState(
     isAlreadyPaid
       ? { razorpay_payment_id: session.razorpay_payment_id || 'pay_confirmed', razorpay_order_id: session.razorpay_order_id }
@@ -51,13 +49,11 @@ export default function InvoiceModal({ isOpen, onClose, session, product, onPaym
 
   const invoiceNo = `INV-PAR-${session.session_id.substring(4, 12).toUpperCase()}`;
   const receiptNo = `RCPT-PAR-${session.session_id.substring(4, 12).toUpperCase()}`;
-  const checkoutUrl = `${window.location.origin}/pay/${session.session_id}`;
 
   const paymentId = paymentDetails?.razorpay_payment_id || session.razorpay_payment_id || 'pay_confirmed';
   const orderId = paymentDetails?.razorpay_order_id || session.razorpay_order_id || 'order_confirmed';
   const paidAtFormatted = session.paid_at ? new Date(session.paid_at).toLocaleString('en-IN') : new Date().toLocaleString('en-IN');
 
-  // Execute Pre-Authorized Mandate Settlement (API)
   const handleMandateSettle = async () => {
     if (isPaid || session.payment_status === 'paid') {
       toast('This invoice has already been settled.', { icon: 'ℹ️' });
@@ -111,8 +107,6 @@ export default function InvoiceModal({ isOpen, onClose, session, product, onPaym
 
     try {
       let activeOrderId = session.razorpay_order_id;
-
-      // Genuine Razorpay order IDs are e.g. order_TXYGqzOO8hy9zD (starts with order_ followed by alphanumeric, no extra underscores)
       const isGenuineRazorpayOrderId = activeOrderId && /^order_[A-Za-z0-9]{14,20}$/.test(activeOrderId);
       if (!isGenuineRazorpayOrderId) {
         const orderRes = await axios.post('/payment/create-order', {
@@ -124,7 +118,6 @@ export default function InvoiceModal({ isOpen, onClose, session, product, onPaym
       }
 
       const runCheckout = () => {
-        // When order_id is passed, do NOT pass amount/currency to avoid Razorpay SDK mismatch errors
         const options = {
           key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_TX83aNPfLyFFKW',
           order_id: activeOrderId,
@@ -161,7 +154,7 @@ export default function InvoiceModal({ isOpen, onClose, session, product, onPaym
             contact: '9999999999'
           },
           theme: {
-            color: '#0d0f14'
+            color: '#09090b'
           },
           modal: {
             ondismiss: function () {
@@ -197,10 +190,6 @@ export default function InvoiceModal({ isOpen, onClose, session, product, onPaym
     }
   };
 
-  const handleCopyPaymentLink = () => {
-    navigator.clipboard.writeText(checkoutUrl);
-    toast.success('Hosted payment link copied to clipboard!');
-  };
   const handlePrintInvoice = () => {
     const isReceipt = docView === 'receipt' && isPaid;
     const docTitle = isReceipt ? `Payment_Receipt_${receiptNo}` : `Tax_Invoice_${invoiceNo}`;
@@ -226,7 +215,7 @@ export default function InvoiceModal({ isOpen, onClose, session, product, onPaym
             }
             body {
               font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-              color: #0f172a;
+              color: #09090b;
               background: #ffffff;
               font-size: 13px;
               line-height: 1.5;
@@ -234,7 +223,7 @@ export default function InvoiceModal({ isOpen, onClose, session, product, onPaym
             .document {
               max-width: 100%;
               margin: 0 auto;
-              border: 1px solid #cbd5e1;
+              border: 1px solid #e4e4e7;
               border-radius: 8px;
               padding: 32px;
             }
@@ -242,78 +231,73 @@ export default function InvoiceModal({ isOpen, onClose, session, product, onPaym
               display: flex;
               justify-content: space-between;
               align-items: flex-start;
-              border-bottom: 2px solid #0f172a;
+              border-bottom: 2px solid #09090b;
               padding-bottom: 16px;
               margin-bottom: 24px;
             }
             .brand-title {
               font-size: 22px;
-              font-weight: 800;
-              color: #0f172a;
+              font-weight: 900;
               letter-spacing: -0.5px;
             }
             .brand-subtitle {
               font-size: 11px;
-              color: #64748b;
-              text-transform: uppercase;
-              letter-spacing: 1px;
+              color: #71717a;
+              font-family: monospace;
               margin-top: 2px;
             }
             .doc-type {
               text-align: right;
             }
             .doc-type-badge {
-              display: inline-block;
-              font-size: 11px;
-              font-weight: 700;
-              text-transform: uppercase;
+              font-size: 12px;
+              font-weight: 800;
+              font-family: monospace;
               padding: 4px 10px;
+              background: #ecfdf5;
+              color: #065f46;
+              border: 1px solid #10b981;
               border-radius: 4px;
+              display: inline-block;
               margin-bottom: 6px;
-              ${isReceipt 
-                ? 'background: #dcfce7; color: #166534; border: 1px solid #86efac;' 
-                : 'background: #e0e7ff; color: #3730a3; border: 1px solid #a5b4fc;'}
             }
             .doc-number {
+              font-family: monospace;
               font-size: 14px;
               font-weight: 700;
-              font-family: monospace;
-              color: #0f172a;
             }
             .doc-date {
               font-size: 11px;
-              color: #64748b;
-              margin-top: 2px;
+              color: #71717a;
             }
             .parties-grid {
               display: grid;
               grid-template-columns: 1fr 1fr;
-              gap: 24px;
+              gap: 20px;
               margin-bottom: 24px;
             }
             .party-box {
-              background: #f8fafc;
-              border: 1px solid #e2e8f0;
+              background: #fafafa;
+              border: 1px solid #e4e4e7;
               border-radius: 6px;
-              padding: 16px;
+              padding: 14px;
             }
             .party-label {
               font-size: 10px;
               text-transform: uppercase;
               font-weight: 700;
-              color: #64748b;
-              letter-spacing: 0.5px;
-              margin-bottom: 6px;
+              color: #71717a;
+              font-family: monospace;
+              margin-bottom: 4px;
             }
             .party-name {
               font-size: 14px;
               font-weight: 700;
-              color: #0f172a;
               margin-bottom: 4px;
             }
             .party-meta {
-              font-size: 12px;
-              color: #475569;
+              font-size: 11px;
+              color: #52525b;
               line-height: 1.4;
             }
             .table-container {
@@ -322,31 +306,26 @@ export default function InvoiceModal({ isOpen, onClose, session, product, onPaym
             table {
               width: 100%;
               border-collapse: collapse;
-              font-size: 12px;
-            }
-            th {
-              background: #f1f5f9;
-              color: #334155;
-              font-weight: 700;
-              text-transform: uppercase;
-              font-size: 10px;
-              letter-spacing: 0.5px;
-              padding: 10px 12px;
-              border-bottom: 2px solid #cbd5e1;
               text-align: left;
             }
-            th.text-right, td.text-right {
-              text-align: right;
+            th {
+              background: #f4f4f5;
+              padding: 10px 12px;
+              font-size: 10px;
+              text-transform: uppercase;
+              font-family: monospace;
+              color: #52525b;
+              border-bottom: 1px solid #d4d4d8;
             }
             td {
               padding: 12px;
-              border-bottom: 1px solid #e2e8f0;
-              color: #1e293b;
+              border-bottom: 1px solid #e4e4e7;
+              font-size: 12px;
             }
             .sku-tag {
-              font-size: 10px;
-              color: #64748b;
               font-family: monospace;
+              font-size: 10px;
+              color: #71717a;
               margin-top: 2px;
             }
             .summary-section {
@@ -356,8 +335,8 @@ export default function InvoiceModal({ isOpen, onClose, session, product, onPaym
             }
             .summary-box {
               width: 320px;
-              background: #f8fafc;
-              border: 1px solid #cbd5e1;
+              background: #fafafa;
+              border: 1px solid #e4e4e7;
               border-radius: 6px;
               padding: 16px;
             }
@@ -365,56 +344,35 @@ export default function InvoiceModal({ isOpen, onClose, session, product, onPaym
               display: flex;
               justify-content: space-between;
               font-size: 12px;
-              color: #475569;
+              color: #52525b;
               margin-bottom: 8px;
             }
             .summary-row.total {
-              border-top: 2px solid #0f172a;
+              border-top: 2px solid #09090b;
               padding-top: 10px;
               margin-top: 6px;
               font-size: 15px;
               font-weight: 800;
-              color: #0f172a;
+              color: #09090b;
             }
             .summary-row.balance {
               font-size: 11px;
-              color: #166534;
+              color: #065f46;
               font-weight: 700;
               margin-top: 4px;
             }
-            .audit-section {
-              background: #f8fafc;
-              border: 1px solid #e2e8f0;
-              border-radius: 6px;
-              padding: 14px;
-              font-size: 11px;
-              font-family: monospace;
-              margin-bottom: 24px;
-            }
-            .audit-row {
-              display: flex;
-              justify-content: space-between;
-              margin-bottom: 4px;
-            }
-            .audit-label {
-              color: #64748b;
-            }
-            .audit-value {
-              font-weight: 700;
-              color: #0f172a;
-            }
             .footer {
-              border-top: 1px solid #e2e8f0;
+              border-top: 1px solid #e4e4e7;
               padding-top: 16px;
               display: flex;
               justify-content: space-between;
               align-items: center;
               font-size: 10px;
-              color: #64748b;
+              color: #71717a;
             }
             .seal-badge {
               font-weight: 700;
-              color: #166534;
+              color: #065f46;
               display: flex;
               align-items: center;
               gap: 4px;
@@ -423,7 +381,6 @@ export default function InvoiceModal({ isOpen, onClose, session, product, onPaym
         </head>
         <body>
           <div class="document">
-            <!-- Header -->
             <div class="header">
               <div>
                 <div class="brand-title">PARLAY COMMERCE</div>
@@ -438,7 +395,6 @@ export default function InvoiceModal({ isOpen, onClose, session, product, onPaym
               </div>
             </div>
 
-            <!-- Seller vs Buyer -->
             <div class="parties-grid">
               <div class="party-box">
                 <div class="party-label">${isReceipt ? 'Beneficiary (Merchant)' : 'Seller (Merchant)'}</div>
@@ -460,15 +416,14 @@ export default function InvoiceModal({ isOpen, onClose, session, product, onPaym
               </div>
             </div>
 
-            <!-- Items Table -->
             <div class="table-container">
               <table>
                 <thead>
                   <tr>
                     <th style="width: 50%;">Item Description</th>
                     <th style="width: 15%;">HSN</th>
-                    <th class="text-right" style="width: 15%;">Qty × Rate</th>
-                    <th class="text-right" style="width: 20%;">Total (INR)</th>
+                    <th style="width: 15%; text-align: right;">Qty × Rate</th>
+                    <th style="width: 20%; text-align: right;">Total (INR)</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -478,14 +433,13 @@ export default function InvoiceModal({ isOpen, onClose, session, product, onPaym
                       <div class="sku-tag">SKU: ${session.product_id}</div>
                     </td>
                     <td>8539</td>
-                    <td class="text-right">${quantity} × ₹${unitPrice.toLocaleString()}</td>
-                    <td class="text-right"><strong>₹${subtotal.toLocaleString()}</strong></td>
+                    <td style="text-align: right;">${quantity} × ₹${unitPrice.toLocaleString()}</td>
+                    <td style="text-align: right;"><strong>₹${subtotal.toLocaleString()}</strong></td>
                   </tr>
                 </tbody>
               </table>
             </div>
 
-            <!-- Summary & Taxes -->
             <div class="summary-section">
               <div class="summary-box">
                 <div class="summary-row">
@@ -501,50 +455,22 @@ export default function InvoiceModal({ isOpen, onClose, session, product, onPaym
                   <span>₹${halfGst.toLocaleString()}</span>
                 </div>
                 <div class="summary-row total">
-                  <span>Total Net Value:</span>
+                  <span>Grand Settlement Total:</span>
                   <span>₹${totalAmount.toLocaleString()}</span>
                 </div>
-                ${isPaid ? `
-                  <div class="summary-row balance">
-                    <span>Payment Status:</span>
-                    <span>PAID (₹0.00 Outstanding)</span>
-                  </div>
-                ` : `
-                  <div class="summary-row" style="color: #b45309; font-weight: 700; margin-top: 4px;">
-                    <span>Payment Status:</span>
-                    <span>PAYMENT DUE</span>
-                  </div>
-                `}
+                <div class="summary-row balance">
+                  <span>Settlement Status:</span>
+                  <span>${isPaid ? 'PAID IN FULL (₹0.00 DUE)' : 'UNPAID PROFORMA'}</span>
+                </div>
               </div>
             </div>
 
-            <!-- Transaction Audit Data -->
-            <div class="audit-section">
-              <div class="audit-row">
-                <span class="audit-label">Razorpay Payment ID:</span>
-                <span class="audit-value">${paymentId}</span>
-              </div>
-              <div class="audit-row">
-                <span class="audit-label">Razorpay Order ID:</span>
-                <span class="audit-value">${orderId}</span>
-              </div>
-              <div class="audit-row">
-                <span class="audit-label">Settlement Rail:</span>
-                <span class="audit-value">Razorpay Autonomous M2M Pre-Authorized Mandate</span>
-              </div>
-              <div class="audit-row">
-                <span class="audit-label">Deterministic Verification:</span>
-                <span class="audit-value">HMAC-SHA256 Validated • Tamper-Proof Audit Trail</span>
-              </div>
-            </div>
-
-            <!-- Footer -->
             <div class="footer">
               <div>
-                Parlay Autonomous Commerce Protocol v1.0 • Formally Executed Electronic Instrument
+                Parlay Autonomous Commerce Protocol • Formally Executed Electronic Instrument
               </div>
               <div class="seal-badge">
-                ✔ DIGITALLY VERIFIED & AUTHENTICATED
+                ✔ DIGITALLY AUTHENTICATED
               </div>
             </div>
           </div>
@@ -579,20 +505,20 @@ export default function InvoiceModal({ isOpen, onClose, session, product, onPaym
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs p-4 font-sans">
-      <div className="bg-[#141720] border border-white/10 rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-5 shadow-2xl flex flex-col gap-3.5 text-slate-200">
+      <div className="bg-zinc-900 border border-white/[0.08] rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-5 shadow-2xl flex flex-col gap-3.5 text-zinc-200">
         {/* Modal Top Header */}
-        <div className="flex items-center justify-between pb-2.5 border-b border-white/10">
+        <div className="flex items-center justify-between pb-2.5 border-b border-white/[0.06]">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded bg-white/10 border border-white/10 flex items-center justify-center">
+            <div className="w-6 h-6 rounded bg-zinc-800 border border-white/[0.06] flex items-center justify-center">
               {docView === 'receipt' && isPaid ? (
                 <Receipt className="w-3.5 h-3.5 text-emerald-400" />
               ) : (
-                <FileText className="w-3.5 h-3.5 text-indigo-400" />
+                <FileText className="w-3.5 h-3.5 text-emerald-400" />
               )}
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-xs font-bold text-white uppercase tracking-wider font-mono print:text-black">
+                <h3 className="text-xs font-bold text-zinc-100 uppercase tracking-wider font-mono">
                   {docView === 'receipt' && isPaid
                     ? 'Official Payment Settlement Receipt'
                     : isPaid
@@ -600,37 +526,33 @@ export default function InvoiceModal({ isOpen, onClose, session, product, onPaym
                     : 'Commercial Proforma Invoice'}
                 </h3>
                 {isPaid && (
-                  <span className={`text-[9px] px-2 py-0.2 rounded font-mono font-bold ${
-                    docView === 'receipt'
-                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 print:bg-emerald-100 print:text-emerald-900 print:border-emerald-400'
-                      : 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 print:bg-indigo-100 print:text-indigo-900 print:border-indigo-400'
-                  }`}>
+                  <span className="text-[9px] px-2 py-0.5 rounded font-mono font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/25">
                     {docView === 'receipt' ? 'Settled & Captured' : 'Paid & Settled'}
                   </span>
                 )}
               </div>
-              <p className="text-[10px] text-slate-400 font-mono print:text-slate-600">
+              <p className="text-[10px] text-zinc-500 font-mono">
                 {docView === 'receipt' && isPaid ? receiptNo : invoiceNo} • Ref: {session.session_id}
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded text-slate-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer print:hidden"
+            className="p-1 rounded text-zinc-500 hover:text-zinc-200 hover:bg-white/5 transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Document Type Switcher (Viewable & Downloadable by Both Merchant & Buyer) */}
+        {/* Document Type Switcher */}
         {isPaid && (
-          <div className="flex items-center gap-1 bg-[#0f1118] p-1 rounded-lg border border-white/10 print:hidden font-mono text-xs">
+          <div className="flex items-center gap-1 bg-zinc-950 p-1 rounded-lg border border-white/[0.06] font-mono text-xs">
             <button
               onClick={() => setDocView('invoice')}
-              className={`flex-1 py-1.5 px-3 rounded-md flex items-center justify-center gap-1.5 font-bold transition-all cursor-pointer ${
+              className={`flex-1 py-1.5 px-3 rounded flex items-center justify-center gap-1.5 font-bold transition-all cursor-pointer ${
                 docView === 'invoice'
-                  ? 'bg-indigo-600 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-white hover:bg-white/5'
+                  ? 'bg-zinc-800 text-zinc-100 border border-white/10 shadow-xs'
+                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/5'
               }`}
             >
               <FileText className="w-3.5 h-3.5" />
@@ -638,10 +560,10 @@ export default function InvoiceModal({ isOpen, onClose, session, product, onPaym
             </button>
             <button
               onClick={() => setDocView('receipt')}
-              className={`flex-1 py-1.5 px-3 rounded-md flex items-center justify-center gap-1.5 font-bold transition-all cursor-pointer ${
+              className={`flex-1 py-1.5 px-3 rounded flex items-center justify-center gap-1.5 font-bold transition-all cursor-pointer ${
                 docView === 'receipt'
-                  ? 'bg-emerald-600 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-white hover:bg-white/5'
+                  ? 'bg-emerald-500 text-zinc-950 shadow-xs'
+                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/5'
               }`}
             >
               <Receipt className="w-3.5 h-3.5" />
@@ -652,173 +574,173 @@ export default function InvoiceModal({ isOpen, onClose, session, product, onPaym
 
         {/* VIEW 1: OFFICIAL B2B PAYMENT RECEIPT */}
         {docView === 'receipt' && isPaid ? (
-          <div className="bg-[#191c26] border border-emerald-500/20 rounded-lg p-3.5 flex flex-col gap-3 font-mono print:bg-white print:border print:border-slate-400 print:rounded-none print:p-6 print:text-black">
+          <div className="bg-zinc-950/60 border border-emerald-500/20 rounded-lg p-3.5 flex flex-col gap-3 font-mono">
             {/* Receipt Identification Header */}
-            <div className="flex items-center justify-between pb-2 border-b border-white/5 print:border-slate-300">
+            <div className="flex items-center justify-between pb-2 border-b border-white/[0.04]">
               <div>
-                <span className="text-[9px] uppercase font-bold text-emerald-400 print:text-emerald-800 tracking-wider block">
+                <span className="text-[9px] uppercase font-bold text-emerald-400 tracking-wider block">
                   OFFICIAL PAYMENT SETTLEMENT RECEIPT
                 </span>
-                <p className="text-xs font-bold text-white font-sans print:text-black">{receiptNo}</p>
-                <p className="text-[10px] text-slate-400 print:text-slate-700">{paidAtFormatted}</p>
+                <p className="text-xs font-bold text-zinc-100 font-sans">{receiptNo}</p>
+                <p className="text-[10px] text-zinc-500">{paidAtFormatted}</p>
               </div>
               <div className="text-right">
-                <span className="text-[9px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold print:bg-emerald-100 print:text-emerald-900 print:border-emerald-500">
+                <span className="text-[9px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold">
                   ✔ PAYMENT CAPTURED
                 </span>
-                <p className="text-[9px] text-slate-500 print:text-slate-600 mt-0.5">HMAC-SHA256 Validated</p>
+                <p className="text-[9px] text-zinc-500 mt-0.5">HMAC-SHA256 Validated</p>
               </div>
             </div>
 
             {/* Merchant vs Buyer Grid */}
-            <div className="grid grid-cols-2 gap-3 text-[11px] pb-2 border-b border-white/5 print:border-slate-300">
-              <div className="p-2.5 rounded bg-black/20 print:bg-slate-50 print:border print:border-slate-300">
-                <span className="text-[9px] uppercase text-slate-400 print:text-slate-600 block font-semibold">Beneficiary (Merchant)</span>
-                <p className="font-bold text-white font-sans print:text-black text-xs">Parlay Wholesale Direct</p>
-                <p className="text-[10px] text-slate-400 print:text-slate-700 font-mono">GSTIN: 27AABCP1234F1Z5</p>
+            <div className="grid grid-cols-2 gap-3 text-[11px] pb-2 border-b border-white/[0.04]">
+              <div className="p-2.5 rounded bg-zinc-900/80 border border-white/[0.04]">
+                <span className="text-[9px] uppercase text-zinc-500 block font-semibold">Beneficiary (Merchant)</span>
+                <p className="font-bold text-zinc-100 font-sans text-xs">Parlay Wholesale Direct</p>
+                <p className="text-[10px] text-zinc-500 font-mono">GSTIN: 27AABCP1234F1Z5</p>
               </div>
-              <div className="p-2.5 rounded bg-black/20 print:bg-slate-50 print:border print:border-slate-300">
-                <span className="text-[9px] uppercase text-slate-400 print:text-slate-600 block font-semibold">Remitter (Purchaser)</span>
-                <p className="font-bold text-white font-sans print:text-black text-xs capitalize">
+              <div className="p-2.5 rounded bg-zinc-900/80 border border-white/[0.04]">
+                <span className="text-[9px] uppercase text-zinc-500 block font-semibold">Remitter (Purchaser)</span>
+                <p className="font-bold text-zinc-100 font-sans text-xs capitalize">
                   {session.buyer_agent_name || (session.buyer_persona ? `${session.buyer_persona} Procurement Agent` : 'Enterprise Buyer Bot')}
                 </p>
-                <p className="text-[10px] text-slate-400 print:text-slate-700 font-mono">Ref: #{session.session_id}</p>
+                <p className="text-[10px] text-zinc-500 font-mono">Ref: #{session.session_id}</p>
               </div>
             </div>
 
             {/* Transaction Parameters Table */}
             <div className="space-y-1.5 text-[11px]">
-              <div className="flex justify-between items-center text-slate-300 print:text-slate-800 py-1 border-b border-white/5 print:border-slate-200">
-                <span className="text-slate-400 print:text-slate-600 font-medium">Razorpay Payment ID:</span>
-                <span className="text-white font-bold font-mono print:text-black">{paymentId}</span>
+              <div className="flex justify-between items-center text-zinc-300 py-1 border-b border-white/[0.04]">
+                <span className="text-zinc-500 font-medium">Razorpay Payment ID:</span>
+                <span className="text-zinc-100 font-bold font-mono">{paymentId}</span>
               </div>
-              <div className="flex justify-between items-center text-slate-300 print:text-slate-800 py-1 border-b border-white/5 print:border-slate-200">
-                <span className="text-slate-400 print:text-slate-600 font-medium">Razorpay Order ID:</span>
-                <span className="text-white font-bold font-mono print:text-black">{orderId}</span>
+              <div className="flex justify-between items-center text-zinc-300 py-1 border-b border-white/[0.04]">
+                <span className="text-zinc-500 font-medium">Razorpay Order ID:</span>
+                <span className="text-zinc-100 font-bold font-mono">{orderId}</span>
               </div>
-              <div className="flex justify-between items-center text-slate-300 print:text-slate-800 py-1 border-b border-white/5 print:border-slate-200">
-                <span className="text-slate-400 print:text-slate-600 font-medium">Payment Rail:</span>
-                <span className="text-sky-300 font-bold print:text-sky-900">Razorpay Autonomous M2M Pre-Authorized Mandate</span>
+              <div className="flex justify-between items-center text-zinc-300 py-1 border-b border-white/[0.04]">
+                <span className="text-zinc-500 font-medium">Payment Rail:</span>
+                <span className="text-emerald-400 font-bold">Razorpay Autonomous M2M Pre-Authorized Mandate</span>
               </div>
-              <div className="flex justify-between items-center text-slate-300 print:text-slate-800 py-1">
-                <span className="text-slate-400 print:text-slate-600 font-medium">Procured SKU:</span>
-                <span className="text-white font-bold print:text-black font-sans">
+              <div className="flex justify-between items-center text-zinc-300 py-1">
+                <span className="text-zinc-500 font-medium">Procured SKU:</span>
+                <span className="text-zinc-100 font-bold font-sans">
                   {session.product_name || product?.name || session.product_id} ({quantity} units)
                 </span>
               </div>
             </div>
 
             {/* Financial Settlement Box */}
-            <div className="p-3 rounded-lg bg-[#090b12] border border-emerald-500/30 print:bg-slate-50 print:border print:border-slate-400 flex flex-col gap-1.5 text-[11px]">
-              <div className="flex justify-between text-slate-300 print:text-slate-800">
+            <div className="p-3 rounded-lg bg-zinc-950 border border-emerald-500/25 flex flex-col gap-1.5 text-[11px]">
+              <div className="flex justify-between text-zinc-400">
                 <span>Subtotal Received:</span>
-                <span className="text-white font-bold print:text-black">₹{subtotal.toLocaleString()}</span>
+                <span className="text-zinc-100 font-bold">₹{subtotal.toLocaleString()}</span>
               </div>
-              <div className="flex justify-between text-slate-300 print:text-slate-800">
+              <div className="flex justify-between text-zinc-400">
                 <span>B2B Applicable GST (18%):</span>
-                <span className="text-white font-mono print:text-black">₹{gstTax.toLocaleString()}</span>
+                <span className="text-zinc-100 font-mono">₹{gstTax.toLocaleString()}</span>
               </div>
-              <div className="flex justify-between text-sm font-bold text-white print:text-black pt-1.5 border-t border-white/10 print:border-slate-300">
-                <span className="text-emerald-400 print:text-emerald-800 font-bold">Total Net Settled:</span>
-                <span className="text-emerald-400 text-base print:text-emerald-800 font-bold">₹{totalAmount.toLocaleString()}</span>
+              <div className="flex justify-between text-sm font-bold text-zinc-100 pt-1.5 border-t border-white/[0.06]">
+                <span className="text-emerald-400 font-bold">Total Net Settled:</span>
+                <span className="text-emerald-400 text-base font-bold">₹{totalAmount.toLocaleString()}</span>
               </div>
-              <div className="flex justify-between text-[10px] text-slate-400 print:text-slate-700 pt-0.5">
+              <div className="flex justify-between text-[10px] text-zinc-500 pt-0.5">
                 <span>Balance Outstanding:</span>
-                <span className="text-emerald-400 font-bold print:text-emerald-800">₹0.00 (Zero Balance Due • Fully Settled)</span>
+                <span className="text-emerald-400 font-bold">₹0.00 (Zero Balance Due • Fully Settled)</span>
               </div>
             </div>
 
-            {/* Legal / Security Footer */}
-            <div className="pt-2 flex items-center justify-between text-[10px] text-slate-500 print:text-slate-600 border-t border-white/5 print:border-slate-300">
+            {/* Security Footer */}
+            <div className="pt-2 flex items-center justify-between text-[10px] text-zinc-500 border-t border-white/[0.04]">
               <span>Settlement Gateway: Razorpay Verified Corporate Rails</span>
-              <span className="font-bold text-emerald-400 print:text-emerald-800 font-mono">AUTHENTICATED FINANCIAL VOUCHER</span>
+              <span className="font-bold text-emerald-400 font-mono">AUTHENTICATED FINANCIAL VOUCHER</span>
             </div>
           </div>
         ) : (
           /* VIEW 2: COMMERCIAL TAX INVOICE */
-          <div className="bg-[#191c26] border border-white/10 rounded-lg p-3.5 flex flex-col gap-3 font-mono print:bg-white print:border print:border-slate-400 print:rounded-none print:p-6 print:text-black">
+          <div className="bg-zinc-950/60 border border-white/[0.06] rounded-lg p-3.5 flex flex-col gap-3 font-mono">
             {/* Merchant vs Buyer Grid */}
-            <div className="grid grid-cols-2 gap-3 text-[11px] pb-2.5 border-b border-white/5 print:border-slate-300">
-              <div className="p-2.5 rounded bg-black/20 print:bg-slate-50 print:border print:border-slate-300">
-                <span className="text-[9px] uppercase text-slate-400 print:text-slate-600 block font-semibold">Seller (Merchant)</span>
-                <p className="font-bold text-white font-sans print:text-black text-xs">Parlay Wholesale Direct</p>
-                <p className="text-[10px] text-slate-400 print:text-slate-700 font-mono">GSTIN: 27AABCP1234F1Z5</p>
+            <div className="grid grid-cols-2 gap-3 text-[11px] pb-2.5 border-b border-white/[0.04]">
+              <div className="p-2.5 rounded bg-zinc-900/80 border border-white/[0.04]">
+                <span className="text-[9px] uppercase text-zinc-500 block font-semibold">Seller (Merchant)</span>
+                <p className="font-bold text-zinc-100 font-sans text-xs">Parlay Wholesale Direct</p>
+                <p className="text-[10px] text-zinc-500 font-mono">GSTIN: 27AABCP1234F1Z5</p>
               </div>
-              <div className="p-2.5 rounded bg-black/20 print:bg-slate-50 print:border print:border-slate-300">
-                <span className="text-[9px] uppercase text-slate-400 print:text-slate-600 block font-semibold">Purchaser (AI Buyer)</span>
-                <p className="font-bold text-white font-sans print:text-black text-xs capitalize">
+              <div className="p-2.5 rounded bg-zinc-900/80 border border-white/[0.04]">
+                <span className="text-[9px] uppercase text-zinc-500 block font-semibold">Purchaser (AI Buyer)</span>
+                <p className="font-bold text-zinc-100 font-sans text-xs capitalize">
                   {session.buyer_agent_name || (session.buyer_persona ? `${session.buyer_persona} Agent` : 'Enterprise Buyer Bot')}
                 </p>
-                <p className="text-[10px] text-slate-400 print:text-slate-700 font-mono">Ref: #{session.session_id}</p>
+                <p className="text-[10px] text-zinc-500 font-mono">Ref: #{session.session_id}</p>
               </div>
             </div>
 
-            {/* Line Item Table (Fixed 12-Col Grid) */}
+            {/* Line Item Table */}
             <div className="flex flex-col gap-1 text-xs">
-              <div className="grid grid-cols-12 gap-2 text-[9px] uppercase font-semibold text-slate-400 pb-1 border-b border-white/5 print:text-slate-700 print:border-slate-300">
+              <div className="grid grid-cols-12 gap-2 text-[9px] uppercase font-semibold text-zinc-500 pb-1 border-b border-white/[0.04]">
                 <span className="col-span-6">Item Description & SKU</span>
                 <span className="col-span-3 text-right">Qty × Rate</span>
                 <span className="col-span-3 text-right">Subtotal</span>
               </div>
-              <div className="grid grid-cols-12 gap-2 items-center py-1.5 border-b border-white/5 print:border-slate-200">
+              <div className="grid grid-cols-12 gap-2 items-center py-1.5 border-b border-white/[0.04]">
                 <div className="col-span-6 pr-2">
-                  <p className="font-semibold text-white font-sans print:text-black text-xs leading-tight">
+                  <p className="font-semibold text-zinc-100 font-sans text-xs leading-tight">
                     {session.product_name || product?.name || session.product_id}
                   </p>
-                  <p className="text-[9px] text-slate-400 mt-0.5 font-mono print:text-slate-600">
+                  <p className="text-[9px] text-zinc-500 mt-0.5 font-mono">
                     SKU: {session.product_id} • HSN: 8539
                   </p>
                 </div>
-                <div className="col-span-3 text-right text-slate-300 font-mono print:text-black text-xs">
+                <div className="col-span-3 text-right text-zinc-300 font-mono text-xs">
                   {quantity} × ₹{unitPrice}
                 </div>
-                <div className="col-span-3 text-right font-bold text-white font-mono print:text-black text-xs">
+                <div className="col-span-3 text-right font-bold text-zinc-100 font-mono text-xs">
                   ₹{subtotal.toLocaleString()}
                 </div>
               </div>
             </div>
 
             {/* Pricing Summary */}
-            <div className="pt-2 flex flex-col gap-1 text-[11px] print:border-slate-200">
-              <div className="flex justify-between text-slate-300 print:text-slate-800">
+            <div className="pt-2 flex flex-col gap-1 text-[11px]">
+              <div className="flex justify-between text-zinc-400">
                 <span>Negotiated Commercial Subtotal:</span>
-                <span className="font-bold text-white print:text-black">₹{subtotal.toLocaleString()}</span>
+                <span className="font-bold text-zinc-100">₹{subtotal.toLocaleString()}</span>
               </div>
-              <div className="flex justify-between text-slate-300 print:text-slate-800">
+              <div className="flex justify-between text-zinc-400">
                 <span>Central GST (CGST 9%):</span>
-                <span className="font-mono print:text-black">₹{Math.round(gstTax / 2).toLocaleString()}</span>
+                <span className="font-mono text-zinc-200">₹{Math.round(gstTax / 2).toLocaleString()}</span>
               </div>
-              <div className="flex justify-between text-slate-300 print:text-slate-800">
+              <div className="flex justify-between text-zinc-400">
                 <span>State GST (SGST 9%):</span>
-                <span className="font-mono print:text-black">₹{Math.round(gstTax / 2).toLocaleString()}</span>
+                <span className="font-mono text-zinc-200">₹{Math.round(gstTax / 2).toLocaleString()}</span>
               </div>
-              <div className="flex justify-between text-sm font-bold text-white print:text-black pt-1.5 border-t border-white/10 print:border-slate-300">
+              <div className="flex justify-between text-sm font-bold text-zinc-100 pt-1.5 border-t border-white/[0.06]">
                 <span>Total Invoice Value:</span>
-                <span className="text-emerald-400 font-bold text-base print:text-emerald-800">₹{totalAmount.toLocaleString()}</span>
+                <span className="text-emerald-400 font-bold text-base">₹{totalAmount.toLocaleString()}</span>
               </div>
             </div>
 
             {/* Razorpay Meta Tag */}
-            <div className="p-2.5 rounded-lg bg-[#0f1118] border border-white/10 flex items-center justify-between text-[11px] print:bg-slate-50 print:border print:border-slate-300">
-              <span className="text-slate-400 print:text-slate-600 font-medium">Razorpay Order Reference:</span>
-              <span className="text-slate-200 font-bold font-mono print:text-black">{orderId}</span>
+            <div className="p-2.5 rounded bg-zinc-950 border border-white/[0.04] flex items-center justify-between text-[11px]">
+              <span className="text-zinc-500 font-medium">Razorpay Order Reference:</span>
+              <span className="text-zinc-300 font-bold font-mono">{orderId}</span>
             </div>
           </div>
         )}
 
-        {/* Payment Settled Banner (Locked State) */}
+        {/* Payment Settled Banner */}
         {isPaid && docView === 'invoice' ? (
-          <div className="p-3.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between text-emerald-300 text-xs font-mono print:bg-emerald-50 print:border-emerald-300 print:text-emerald-900">
+          <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-between text-emerald-300 text-xs font-mono">
             <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 print:text-emerald-700" />
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
               <div>
-                <span className="font-bold block font-sans text-white print:text-black">Invoice Paid & Settled (HMAC Validated)</span>
-                <span className="text-[11px] text-emerald-300/80 print:text-emerald-800">
+                <span className="font-bold block font-sans text-zinc-100">Invoice Paid & Settled (HMAC Validated)</span>
+                <span className="text-[11px] text-emerald-300/80">
                   Payment Reference: {paymentId}
                 </span>
               </div>
             </div>
-            <span className="text-xs px-2.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold print:bg-emerald-200 print:text-emerald-900">
+            <span className="text-xs px-2.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold">
               PAID & CAPTURED
             </span>
           </div>
@@ -826,11 +748,11 @@ export default function InvoiceModal({ isOpen, onClose, session, product, onPaym
 
         {/* Merchant Waiting on Buyer Banner */}
         {!isPaid && role === 'merchant' && (
-          <div className="p-3.5 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-between text-amber-300 text-xs font-mono">
+          <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/25 flex items-center justify-between text-amber-300 text-xs font-mono">
             <div className="flex items-center gap-2">
               <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
               <div>
-                <span className="font-bold block font-sans text-white">Commercial Proforma Issued to Buyer</span>
+                <span className="font-bold block font-sans text-zinc-100">Commercial Proforma Issued to Buyer</span>
                 <span className="text-[11px] text-amber-300/80">Awaiting Buyer Settlement via Razorpay / A2A Mandate</span>
               </div>
             </div>
@@ -841,13 +763,12 @@ export default function InvoiceModal({ isOpen, onClose, session, product, onPaym
         )}
 
         {/* Action Buttons */}
-        <div className="flex flex-col gap-2 pt-1 font-mono print:hidden">
+        <div className="flex flex-col gap-2 pt-1 font-mono">
           {role === 'merchant' ? (
-            /* Merchant Actions: Only Audit, Print, and Done */
             <div className="flex items-center gap-2">
               <button
                 onClick={handlePrintInvoice}
-                className="btn btn-secondary flex-1 py-2 text-xs font-bold flex items-center justify-center gap-1.5 text-slate-100 cursor-pointer"
+                className="btn btn-secondary flex-1 py-2 text-xs font-bold flex items-center justify-center gap-1.5 text-zinc-200 cursor-pointer"
                 title={docView === 'receipt' ? "Print official payment receipt" : isPaid ? "Print official tax invoice" : "Print proforma invoice"}
               >
                 <Printer className="w-3.5 h-3.5" />
@@ -861,14 +782,13 @@ export default function InvoiceModal({ isOpen, onClose, session, product, onPaym
               </button>
             </div>
           ) : (
-            /* Buyer Actions: Pay with Razorpay, Auto Settle, Print */
             <>
               <div className="flex items-center gap-2">
                 {isPaid ? (
                   <>
                     <button
                       onClick={handlePrintInvoice}
-                      className="btn btn-secondary flex-1 py-2 text-xs font-bold flex items-center justify-center gap-1.5 text-slate-100 cursor-pointer"
+                      className="btn btn-secondary flex-1 py-2 text-xs font-bold flex items-center justify-center gap-1.5 text-zinc-200 cursor-pointer"
                     >
                       <Printer className="w-3.5 h-3.5" />
                       <span>{docView === 'receipt' ? 'Download / Print Payment Receipt' : 'Download / Print Tax Invoice'}</span>
@@ -892,7 +812,7 @@ export default function InvoiceModal({ isOpen, onClose, session, product, onPaym
                     </button>
                     <button
                       onClick={handlePrintInvoice}
-                      className="btn btn-secondary px-3 py-2 text-xs font-bold flex items-center justify-center gap-1 text-slate-200 cursor-pointer"
+                      className="btn btn-secondary px-3 py-2 text-xs font-bold flex items-center justify-center gap-1 text-zinc-300 cursor-pointer"
                     >
                       <Printer className="w-3.5 h-3.5" />
                     </button>
@@ -900,7 +820,6 @@ export default function InvoiceModal({ isOpen, onClose, session, product, onPaym
                 )}
               </div>
 
-              {/* Machine-to-Machine Pre-Authorized Mandate Settlement */}
               {!isPaid && (
                 <button
                   onClick={handleMandateSettle}

@@ -244,6 +244,7 @@ const handleAgentNegotiate = async (req, res) => {
     }
 
     const product = await MerchantInventoryItem.findOne({ product_id: session.product_id }).lean();
+    const customerProfile = await customerMemoryService.getOrCreateCustomerProfile(session.buyer_persona);
     session.rounds_count += 1;
     await session.save();
 
@@ -423,7 +424,7 @@ const handleAgentNegotiate = async (req, res) => {
 
     // 3. GENERATE PARLAY MERCHANT COUNTER-OFFER (WITH CUSTOMER MEMORY)
     const history = await NegotiationMessage.find({ session_id }).sort({ timestamp: 1 }).lean();
-    const customerProfile = await customerMemoryService.getOrCreateCustomerProfile(session.buyer_persona);
+    // customerProfile already fetched at start of turn
 
     let merchantTurn;
     try {

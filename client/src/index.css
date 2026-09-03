@@ -3,29 +3,42 @@
 @tailwind utilities;
 
 /* ==========================================================================
-   PARLAY DESIGN SYSTEM — IMPECCABLE MATTE CHARCOAL (SOFT ON EYES)
-   - Zero eye-straining glaring white, zero neon purple/blue AI slop
-   - Calibrated matte charcoal & warm zinc tones (Linear / Raycast standard)
-   - High-contrast tactile typography and solid crisp action controls
+   PARLAY DESIGN SYSTEM v2 — ZINC + EMERALD (SINGLE ACCENT)
+   - Zinc-950 base with emerald-500 as the sole brand accent
+   - Geist sans + JetBrains Mono for data
+   - Unified radius: 4px interactive / 8px cards / 12px modals
+   - Eye-comfortable contrast: off-whites, no pure #000 or #fff glare
    ========================================================================== */
 
 :root {
-  --bg-app: #0d0f14;
-  --bg-surface: #141720;
-  --bg-card: #191c26;
-  --bg-card-hover: #1f2330;
-  --bg-input: #0f1118;
+  --bg-app: #09090b;
+  --bg-surface: #18181b;
+  --bg-elevated: #27272a;
+  --bg-input: #0f0f12;
 
-  --border-subtle: rgba(255, 255, 255, 0.08);
-  --border-strong: rgba(255, 255, 255, 0.16);
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-strong: rgba(255, 255, 255, 0.14);
 
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
+  --text-primary: #fafafa;
+  --text-secondary: #a1a1aa;
+  --text-muted: #71717a;
+
+  --accent: #10b981;
+  --accent-hover: #059669;
+  --accent-muted: rgba(16, 185, 129, 0.12);
+  --accent-border: rgba(16, 185, 129, 0.25);
+
+  --danger: #ef4444;
+  --danger-muted: rgba(239, 68, 68, 0.12);
+  --danger-border: rgba(239, 68, 68, 0.25);
+
+  --warning: #f59e0b;
+  --warning-muted: rgba(245, 158, 11, 0.12);
+  --warning-border: rgba(245, 158, 11, 0.25);
 }
 
 body {
-  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: 'Geist', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   background-color: var(--bg-app);
   color: var(--text-primary);
   line-height: 1.5;
@@ -33,18 +46,19 @@ body {
   width: 100vw;
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
-
-
 
 /* Surface Panel */
 .panel-card {
   background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
-  border-radius: 0.5rem;
+  border-radius: 8px;
 }
 
-/* High-Contrast Tactile Buttons */
+/* ==========================================================================
+   BUTTON SYSTEM — Tactile, high-contrast, eye-comfortable
+   ========================================================================== */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -53,27 +67,31 @@ body {
   font-size: 0.75rem;
   font-weight: 600;
   padding: 0.45rem 0.85rem;
-  border-radius: 0.375rem;
+  border-radius: 4px;
   border: 1px solid transparent;
   cursor: pointer;
-  transition: all 0.12s ease-in-out;
+  transition: all 0.12s cubic-bezier(0.16, 1, 0.3, 1);
   user-select: none;
 }
 
+.btn:active:not(:disabled) {
+  transform: scale(0.98) translateY(1px);
+}
+
 .btn-primary {
-  background: #ffffff;
-  color: #0d0f14;
-  border-color: #ffffff;
+  background: var(--accent);
+  color: #fafafa;
+  border-color: var(--accent);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: #e2e8f0;
-  border-color: #e2e8f0;
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
 }
 
 .btn-secondary {
   background: rgba(255, 255, 255, 0.04);
-  color: #f8fafc;
+  color: #e4e4e7;
   border: 1px solid var(--border-subtle);
 }
 
@@ -83,21 +101,21 @@ body {
 }
 
 .btn-success {
-  background: #10b981;
-  color: #ffffff;
+  background: var(--accent);
+  color: #fafafa;
 }
 
 .btn-success:hover:not(:disabled) {
-  background: #059669;
+  background: var(--accent-hover);
 }
 
 .btn-danger {
-  background: #f43f5e;
-  color: #ffffff;
+  background: var(--danger);
+  color: #fafafa;
 }
 
 .btn-danger:hover:not(:disabled) {
-  background: #e11d48;
+  background: #dc2626;
 }
 
 .btn:disabled {
@@ -105,7 +123,9 @@ body {
   cursor: not-allowed;
 }
 
-/* Restrained Status Badges */
+/* ==========================================================================
+   STATUS BADGES — Semantic only: emerald/red/amber/zinc
+   ========================================================================== */
 .badge {
   display: inline-flex;
   align-items: center;
@@ -114,48 +134,50 @@ body {
   font-size: 0.625rem;
   font-weight: 600;
   padding: 0.12rem 0.45rem;
-  border-radius: 0.25rem;
+  border-radius: 4px;
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
 
 .badge-deal-closed {
-  background: rgba(16, 185, 129, 0.12);
+  background: var(--accent-muted);
   color: #34d399;
-  border: 1px solid rgba(16, 185, 129, 0.28);
+  border: 1px solid var(--accent-border);
 }
 
 .badge-blocked {
-  background: rgba(244, 63, 94, 0.12);
-  color: #fb7185;
-  border: 1px solid rgba(244, 63, 94, 0.28);
+  background: var(--danger-muted);
+  color: #f87171;
+  border: 1px solid var(--danger-border);
 }
 
 .badge-pending-hitl {
-  background: rgba(245, 158, 11, 0.12);
+  background: var(--warning-muted);
   color: #fbbf24;
-  border: 1px solid rgba(245, 158, 11, 0.28);
+  border: 1px solid var(--warning-border);
 }
 
 .badge-ongoing {
-  background: rgba(255, 255, 255, 0.08);
-  color: #e2e8f0;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.06);
+  color: #d4d4d8;
+  border: 1px solid rgba(255, 255, 255, 0.10);
 }
 
 .badge-no-deal {
-  background: rgba(100, 116, 139, 0.12);
-  color: #94a3b8;
-  border: 1px solid rgba(100, 116, 139, 0.22);
+  background: rgba(113, 113, 122, 0.12);
+  color: #a1a1aa;
+  border: 1px solid rgba(113, 113, 122, 0.22);
 }
 
-/* Input Fields */
+/* ==========================================================================
+   INPUT FIELDS
+   ========================================================================== */
 .input-field {
   width: 100%;
   background: var(--bg-input);
   color: var(--text-primary);
   border: 1px solid var(--border-subtle);
-  border-radius: 0.375rem;
+  border-radius: 4px;
   padding: 0.45rem 0.65rem;
   font-size: 0.75rem;
   outline: none;
@@ -163,10 +185,12 @@ body {
 }
 
 .input-field:focus {
-  border-color: rgba(255, 255, 255, 0.3);
+  border-color: rgba(16, 185, 129, 0.4);
 }
 
-/* Minimal Scrollbars */
+/* ==========================================================================
+   SCROLLBARS — Minimal zinc
+   ========================================================================== */
 ::-webkit-scrollbar {
   width: 4px;
   height: 4px;
@@ -177,14 +201,17 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.10);
   border-radius: 2px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.20);
 }
 
+/* ==========================================================================
+   ANIMATIONS
+   ========================================================================== */
 @keyframes slideInUp {
   from {
     opacity: 0;

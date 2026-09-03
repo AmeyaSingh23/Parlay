@@ -9,8 +9,7 @@ import {
   FileText,
   User,
   Store,
-  Award,
-  Sparkles
+  Award
 } from 'lucide-react';
 
 const COMPANY_MAP = {
@@ -37,28 +36,28 @@ const getTierBadge = (tier, trust = 50) => {
   switch (effectiveTier) {
     case 'VIP_PARTNER':
       return {
-        label: '🌟 VIP Partner (+4% Elasticity)',
-        className: 'bg-purple-500/15 text-purple-300 border border-purple-500/30'
+        label: 'VIP Partner (+4% Elasticity)',
+        className: 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
       };
     case 'GROWTH_ACCOUNT':
       return {
-        label: '📈 Growth Partner (+1.5% Elasticity)',
-        className: 'bg-sky-500/15 text-sky-300 border border-sky-500/30'
+        label: 'Growth Partner (+1.5% Elasticity)',
+        className: 'bg-zinc-800 text-zinc-300 border border-zinc-700/60'
       };
     case 'WATCHLIST':
       return {
-        label: '⚠️ Watchlist Account',
+        label: 'Watchlist Account',
         className: 'bg-amber-500/15 text-amber-300 border border-amber-500/30'
       };
     case 'CHRONIC_LOWBALLER':
       return {
-        label: '🛡️ Lowballer Risk (0% Concession)',
-        className: 'bg-rose-500/15 text-rose-300 border border-rose-500/30'
+        label: 'Lowballer Risk (0% Concession)',
+        className: 'bg-red-500/15 text-red-300 border border-red-500/30'
       };
     default:
       return {
-        label: '📈 Growth Partner (+1.5% Elasticity)',
-        className: 'bg-sky-500/15 text-sky-300 border border-sky-500/30'
+        label: 'Growth Partner (+1.5% Elasticity)',
+        className: 'bg-zinc-800 text-zinc-300 border border-zinc-700/60'
       };
   }
 };
@@ -97,22 +96,22 @@ export default function TranscriptPanel({
   };
 
   return (
-    <div className="panel-card flex flex-col h-full overflow-hidden bg-[#141720]">
+    <div className="panel-card flex flex-col h-full overflow-hidden bg-zinc-900">
       {/* Pinned Header */}
-      <div className="p-3 pb-2.5 border-b border-white/[0.08] flex items-center justify-between shrink-0 bg-[#141720]">
+      <div className="p-3 pb-2.5 border-b border-white/[0.06] flex items-center justify-between shrink-0 bg-zinc-900">
         <div className="flex items-center gap-2">
-          <div className="w-5 h-5 rounded bg-white/5 border border-white/10 flex items-center justify-center">
-            <Bot className="w-3.5 h-3.5 text-slate-300" />
+          <div className="w-5 h-5 rounded bg-zinc-800 border border-white/[0.06] flex items-center justify-center">
+            <Bot className="w-3.5 h-3.5 text-zinc-300" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-[11px] font-bold text-slate-200 uppercase tracking-wider font-mono">
+              <h2 className="text-[11px] font-bold text-zinc-200 uppercase tracking-wider font-mono">
                 Live Negotiation Arena
               </h2>
               {session && getStatusBadge(session.status)}
             </div>
-            <p className="text-[10px] text-slate-400 font-mono truncate max-w-[280px]">
-              {session ? session.session_id : 'Select a product & persona to begin'}
+            <p className="text-[10px] text-zinc-500 font-mono truncate max-w-[280px]">
+              {session ? session.session_id : 'Select a product and persona to begin'}
             </p>
           </div>
         </div>
@@ -120,8 +119,8 @@ export default function TranscriptPanel({
         {/* Round Counter */}
         {session && (
           <div className="text-right font-mono">
-            <span className="text-[8px] uppercase text-slate-400 block">Round</span>
-            <span className="text-xs font-bold text-slate-200">
+            <span className="text-[8px] uppercase text-zinc-500 block">Round</span>
+            <span className="text-xs font-bold text-zinc-200">
               {session.rounds_count || 1} / 8
             </span>
           </div>
@@ -130,10 +129,10 @@ export default function TranscriptPanel({
 
       {/* Customer Memory & Reputation Dossier Bar */}
       {session && (
-        <div className="px-3.5 py-2 bg-[#12151e] border-b border-white/5 flex items-center justify-between gap-3 text-xs font-mono">
+        <div className="px-3.5 py-2 bg-zinc-950/80 border-b border-white/[0.04] flex items-center justify-between gap-3 text-xs font-mono">
           <div className="flex items-center gap-2 min-w-0">
-            <Award className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-            <span className="font-bold text-slate-200 truncate">
+            <Award className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+            <span className="font-bold text-zinc-200 truncate">
               {getCompanyName(session.buyer_persona)}
             </span>
             <span className={`text-[9px] px-2 py-0.5 rounded font-bold shrink-0 ${getTierBadge(session.loyalty_tier_snapshot, session.trust_score_snapshot).className}`}>
@@ -142,22 +141,22 @@ export default function TranscriptPanel({
           </div>
 
           <div className="flex items-center gap-2 shrink-0 text-[10px]">
-            <span className="text-slate-400">Trust Score:</span>
+            <span className="text-zinc-500">Trust Score:</span>
             <div className="flex items-center gap-1.5">
-              <div className="w-14 h-1.5 bg-slate-800 rounded-full overflow-hidden border border-white/5">
+              <div className="w-14 h-1.5 bg-zinc-800 rounded-full overflow-hidden border border-white/[0.04]">
                 <div 
-                  className={`h-full rounded-full ${
-                    (session.trust_score_snapshot || 50) >= 80 ? 'bg-purple-400' :
-                    (session.trust_score_snapshot || 50) >= 50 ? 'bg-sky-400' :
-                    (session.trust_score_snapshot || 50) >= 30 ? 'bg-amber-400' : 'bg-rose-500'
+                  className={`h-full rounded-full transition-all duration-300 ${
+                    (session.trust_score_snapshot || 50) >= 80 ? 'bg-emerald-400' :
+                    (session.trust_score_snapshot || 50) >= 50 ? 'bg-emerald-500/70' :
+                    (session.trust_score_snapshot || 50) >= 30 ? 'bg-amber-400' : 'bg-red-500'
                   }`}
                   style={{ width: `${Math.min(100, Math.max(5, session.trust_score_snapshot || 50))}%` }}
                 />
               </div>
               <span className={`font-bold font-mono ${
-                (session.trust_score_snapshot || 50) >= 80 ? 'text-purple-300' :
-                (session.trust_score_snapshot || 50) >= 50 ? 'text-sky-300' :
-                (session.trust_score_snapshot || 50) >= 30 ? 'text-amber-300' : 'text-rose-400'
+                (session.trust_score_snapshot || 50) >= 80 ? 'text-emerald-300' :
+                (session.trust_score_snapshot || 50) >= 50 ? 'text-emerald-400' :
+                (session.trust_score_snapshot || 50) >= 30 ? 'text-amber-300' : 'text-red-400'
               }`}>
                 {session.trust_score_snapshot || 50}/100
               </span>
@@ -167,14 +166,14 @@ export default function TranscriptPanel({
       )}
 
       {/* Message Stream */}
-      <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-3.5 flex flex-col gap-3 min-h-0 bg-[#0d0f14]">
+      <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-3.5 flex flex-col gap-3 min-h-0 bg-[#09090b]">
         {(!messages || messages.length === 0) && (
-          <div className="flex-1 flex flex-col items-center justify-center text-center p-6 text-slate-500">
-            <div className="w-8 h-8 rounded bg-[#191c26] border border-white/5 flex items-center justify-center mb-2 shadow-xs">
-              <ShieldCheck className="w-4 h-4 text-slate-400" />
+          <div className="flex-1 flex flex-col items-center justify-center text-center p-6 text-zinc-500">
+            <div className="w-8 h-8 rounded bg-zinc-900 border border-white/[0.06] flex items-center justify-center mb-2">
+              <ShieldCheck className="w-4 h-4 text-zinc-400" />
             </div>
-            <p className="text-xs font-bold text-slate-300">Ready to Negotiate</p>
-            <p className="text-[10px] text-slate-500 max-w-xs mt-0.5">
+            <p className="text-xs font-bold text-zinc-300">Ready to Negotiate</p>
+            <p className="text-[10px] text-zinc-500 max-w-xs mt-0.5">
               Select an item on the left and click "Start Live Negotiation". Multi-agent dialogue and firewall checks will stream here.
             </p>
           </div>
@@ -189,19 +188,19 @@ export default function TranscriptPanel({
 
           if (isFirewall) {
             return (
-              <div key={index} className="chat-bubble-animate my-1 p-2.5 rounded bg-rose-950/30 border border-rose-700/50 shadow-xs">
-                <div className="flex items-center gap-1.5 text-rose-300 text-xs font-bold font-mono">
-                  <ShieldAlert className="w-3.5 h-3.5 text-rose-400" />
+              <div key={index} className="chat-bubble-animate my-1 p-2.5 rounded bg-red-950/25 border border-red-500/30">
+                <div className="flex items-center gap-1.5 text-red-300 text-xs font-bold font-mono">
+                  <ShieldAlert className="w-3.5 h-3.5 text-red-400" />
                   <span>FIREWALL INTERCEPTION LAYER</span>
-                  <span className="ml-auto text-[9px] px-1.5 py-0.2 rounded bg-rose-500/20 text-rose-300 font-mono font-bold border border-rose-500/30">
+                  <span className="ml-auto text-[9px] px-1.5 py-0.5 rounded bg-red-500/20 text-red-300 font-mono font-bold border border-red-500/30">
                     BLOCKED
                   </span>
                 </div>
-                <p className="text-[11px] text-rose-200 mt-1">
+                <p className="text-[11px] text-red-200 mt-1">
                   {msg.message}
                 </p>
                 {msg.firewall_details?.live_floor && (
-                  <div className="mt-1.5 text-[10px] font-mono text-rose-300/80 bg-black/40 p-1.5 rounded border border-rose-800/30">
+                  <div className="mt-1.5 text-[10px] font-mono text-red-300/90 bg-black/40 p-1.5 rounded border border-red-900/30">
                     Live Floor: ₹{msg.firewall_details.live_floor} | Proposed: ₹{msg.proposed_price} (Disallowed)
                   </div>
                 )}
@@ -213,13 +212,13 @@ export default function TranscriptPanel({
             const isPaymentReceipt = msg.message.includes('PAYMENT CAPTURED') || msg.policy_reason === 'PAYMENT_CAPTURED_HMAC_VERIFIED';
             if (isPaymentReceipt) {
               return (
-                <div key={index} className="chat-bubble-animate my-1.5 p-2.5 rounded-lg bg-emerald-950/30 border border-emerald-500/40 shadow-xs text-left">
+                <div key={index} className="chat-bubble-animate my-1.5 p-2.5 rounded-lg bg-emerald-950/25 border border-emerald-500/30 text-left">
                   <div className="flex items-center justify-between text-emerald-400 text-xs font-bold font-mono">
                     <div className="flex items-center gap-1.5">
                       <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
                       <span>OFFICIAL B2B PAYMENT RECEIPT DELIVERED</span>
                     </div>
-                    <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 font-mono font-semibold border border-emerald-500/30">
+                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 font-mono font-semibold border border-emerald-500/25">
                       HMAC VERIFIED
                     </span>
                   </div>
@@ -231,11 +230,11 @@ export default function TranscriptPanel({
             }
 
             return (
-              <div key={index} className="chat-bubble-animate my-0.5 p-2 rounded bg-[#191c26] border border-white/5 text-center shadow-xs">
-                <span className="text-[8px] font-mono text-slate-400 uppercase tracking-wider block mb-0.5">
+              <div key={index} className="chat-bubble-animate my-0.5 p-2 rounded bg-zinc-900 border border-white/[0.04] text-center">
+                <span className="text-[8px] font-mono text-zinc-500 uppercase tracking-wider block mb-0.5">
                   {isHuman ? 'Human Decision Record' : 'System Event'}
                 </span>
-                <p className="text-[11px] text-slate-300 font-mono">{msg.message}</p>
+                <p className="text-[11px] text-zinc-300 font-mono">{msg.message}</p>
               </div>
             );
           }
@@ -260,7 +259,7 @@ export default function TranscriptPanel({
                   </>
                 ) : (
                   <>
-                    <span className="font-bold text-emerald-300">
+                    <span className="font-bold text-emerald-400">
                       Merchant Agent (Parlay AI)
                     </span>
                     <div className="w-4 h-4 rounded-full bg-emerald-500/20 text-emerald-300 flex items-center justify-center text-[9px] font-bold">
@@ -268,15 +267,15 @@ export default function TranscriptPanel({
                     </div>
                   </>
                 )}
-                <span className="text-slate-500">• R{msg.round || 1}</span>
+                <span className="text-zinc-500">• R{msg.round || 1}</span>
               </div>
 
               {/* Distinct Message Box Coloring */}
               <div
-                className={`p-3 rounded-lg border text-xs leading-relaxed shadow-sm ${
+                className={`p-3 rounded-lg border text-xs leading-relaxed ${
                   isBuyer
-                    ? 'bg-[#1a1d28] border-amber-500/30 text-amber-50/95 rounded-tl-xs'
-                    : 'bg-[#152220] border-emerald-500/30 text-emerald-50/95 rounded-tr-xs'
+                    ? 'bg-zinc-900/90 border-amber-500/25 text-zinc-100 rounded-tl-xs'
+                    : 'bg-emerald-950/20 border-emerald-500/25 text-zinc-100 rounded-tr-xs'
                 }`}
               >
                 <p className="leading-relaxed">{msg.message}</p>
@@ -286,13 +285,13 @@ export default function TranscriptPanel({
                   <div className={`mt-2.5 pt-1.5 border-t flex items-center justify-between gap-2 text-[10px] font-mono ${
                     isBuyer ? 'border-amber-500/20' : 'border-emerald-500/20'
                   }`}>
-                    <span className={`uppercase text-[9px] font-semibold ${isBuyer ? 'text-amber-300/80' : 'text-emerald-300/80'}`}>
+                    <span className={`uppercase text-[9px] font-semibold ${isBuyer ? 'text-amber-400/80' : 'text-emerald-400/80'}`}>
                       {isBuyer ? 'Offered Unit Rate:' : 'Counter Unit Rate:'}
                     </span>
                     <span className={`font-bold px-2 py-0.5 rounded ${
                       isBuyer
-                        ? 'bg-amber-500/15 text-amber-200 border border-amber-500/30'
-                        : 'bg-emerald-500/15 text-emerald-200 border border-emerald-500/30'
+                        ? 'bg-amber-500/15 text-amber-300 border border-amber-500/30'
+                        : 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
                     }`}>
                       ₹{msg.proposed_price}/unit
                     </span>
@@ -302,16 +301,16 @@ export default function TranscriptPanel({
                 {/* Merchant Policy Reasoning & Firewall Audit Box */}
                 {isMerchant && (
                   <div className="mt-2.5 pt-2 border-t border-emerald-500/20 flex flex-col gap-1 text-[9px] font-mono">
-                    <div className="flex items-center justify-between gap-1 text-emerald-400/90 font-semibold">
+                    <div className="flex items-center justify-between gap-1 text-emerald-400 font-semibold">
                       <span className="uppercase tracking-wider">Internal Policy Reason:</span>
                       {msg.firewall_result === 'pass' && (
-                        <span className="inline-flex items-center gap-0.5 text-emerald-300 font-semibold bg-emerald-500/15 px-1.5 py-0.2 rounded border border-emerald-500/30">
+                        <span className="inline-flex items-center gap-0.5 text-emerald-300 font-semibold bg-emerald-500/15 px-1.5 py-0.5 rounded border border-emerald-500/25">
                           <ShieldCheck className="w-2.5 h-2.5" />
                           Firewall: PASS
                         </span>
                       )}
                     </div>
-                    <p className="text-emerald-300/80 leading-relaxed italic bg-black/25 p-1.5 rounded border border-emerald-500/10">
+                    <p className="text-zinc-300 leading-relaxed italic bg-black/30 p-1.5 rounded border border-emerald-500/10">
                       {msg.policy_reason || 'Priced in accordance with catalog target and volume tier margins.'}
                     </p>
                   </div>
@@ -323,20 +322,20 @@ export default function TranscriptPanel({
 
         {/* Live typing indicator */}
         {isNegotiating && (
-          <div className="chat-bubble-animate flex items-center gap-2 text-[10px] text-slate-300 bg-[#191c26] border border-white/5 py-1 px-2.5 rounded w-fit font-mono shadow-xs">
+          <div className="chat-bubble-animate flex items-center gap-2 text-[10px] text-zinc-300 bg-zinc-900 border border-white/[0.06] py-1 px-2.5 rounded w-fit font-mono">
             <div className="flex gap-0.5">
-              <span className="w-1 h-1 rounded-full bg-slate-400 animate-bounce" />
-              <span className="w-1 h-1 rounded-full bg-slate-400 animate-bounce [animation-delay:0.15s]" />
-              <span className="w-1 h-1 rounded-full bg-slate-400 animate-bounce [animation-delay:0.3s]" />
+              <span className="w-1 h-1 rounded-full bg-zinc-400 animate-bounce" />
+              <span className="w-1 h-1 rounded-full bg-zinc-400 animate-bounce [animation-delay:0.15s]" />
+              <span className="w-1 h-1 rounded-full bg-zinc-400 animate-bounce [animation-delay:0.3s]" />
             </div>
-            <span>Evaluating pricing policy & validating live floor...</span>
+            <span>Evaluating pricing policy and validating live floor...</span>
           </div>
         )}
       </div>
 
       {/* Pinned HITL Review Banner */}
       {session?.status === 'pending_hitl' && (
-        <div className="p-2.5 bg-amber-950/20 border-t border-amber-700/40 flex flex-col gap-1.5 shrink-0">
+        <div className="p-2.5 bg-amber-950/20 border-t border-amber-600/30 flex flex-col gap-1.5 shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1 text-amber-400 text-xs font-bold font-mono">
               <AlertCircle className="w-3.5 h-3.5" />
@@ -347,7 +346,7 @@ export default function TranscriptPanel({
             </span>
           </div>
           <p className="text-[10px] text-amber-200/90 leading-tight">
-            {session.hitl_reason || 'Proposed price is near minimum floor boundary. Merchant Manager authorization required.'}
+            {session.hitl_reason || 'Proposed price requires Merchant Manager sign-off.'}
           </p>
           <div className="flex items-center gap-2 pt-0.5">
             <button
@@ -370,9 +369,9 @@ export default function TranscriptPanel({
 
       {/* Pinned Closed Deal Card with Invoice Action */}
       {session?.status === 'deal_closed' && (
-        <div className="p-2.5 bg-[#191c26] border-t border-white/[0.08] flex items-center justify-between shrink-0 font-mono shadow-xs">
+        <div className="p-2.5 bg-zinc-900 border-t border-white/[0.06] flex items-center justify-between shrink-0 font-mono">
           <div>
-            <span className="text-xs font-bold text-white block">
+            <span className="text-xs font-bold text-zinc-100 block">
               Deal Closed at ₹{session.final_price}/unit (Total: ₹{Math.round(session.final_price * session.quantity).toLocaleString()})
             </span>
             <span className="text-[10px] text-emerald-400 font-semibold">

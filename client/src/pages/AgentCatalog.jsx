@@ -703,25 +703,27 @@ const getBuyerDialogue = (persona, round, qty, bid) => {
   };
 
   return (
-    <div className="h-screen w-screen bg-[#0d0f14] text-slate-100 flex flex-col font-sans overflow-hidden">
+    <div className="h-screen w-screen bg-[#09090b] text-zinc-100 flex flex-col font-sans overflow-hidden">
       {/* Top Header */}
-      <header className="border-b border-white/[0.08] bg-[#12151e] px-6 py-3 shrink-0">
+      <header className="border-b border-white/[0.06] bg-zinc-950 px-6 py-3 shrink-0">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link
               to="/dashboard"
-              className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 transition-colors flex items-center gap-1.5 text-xs font-mono"
+              className="p-1.5 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-300 transition-colors flex items-center gap-1.5 text-xs font-mono border border-white/[0.06]"
             >
               <ArrowLeft className="w-4 h-4" />
               <span>Back to Merchant Arena</span>
             </Link>
-            <div className="h-4 w-px bg-white/10" />
+            <div className="h-4 w-px bg-white/[0.08]" />
             <div className="flex items-center gap-2">
-              <Bot className="w-5 h-5 text-indigo-400" />
+              <div className="w-6 h-6 rounded bg-emerald-500 flex items-center justify-center">
+                <Bot className="w-4 h-4 text-zinc-950" />
+              </div>
               <div>
-                <h1 className="text-sm font-bold tracking-tight text-white flex items-center gap-2">
+                <h1 className="text-sm font-bold tracking-tight text-zinc-100 flex items-center gap-2">
                   <span>Parlay A2A Public Gateway</span>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 font-mono border border-indigo-500/30">
+                  <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-300 font-mono border border-emerald-500/20">
                     Agent-Readable Protocol v1.0
                   </span>
                 </h1>
@@ -730,7 +732,7 @@ const getBuyerDialogue = (persona, round, qty, bid) => {
           </div>
 
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded bg-emerald-950/40 border border-emerald-500/30 text-[11px] font-mono text-emerald-300">
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded bg-emerald-500/10 border border-emerald-500/20 text-[11px] font-mono text-emerald-300">
               <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
               <span>Gateway Live: /api/agent/*</span>
             </div>
@@ -738,7 +740,7 @@ const getBuyerDialogue = (persona, round, qty, bid) => {
               href="http://localhost:5000/api/agent/catalog"
               target="_blank"
               rel="noreferrer"
-              className="btn btn-secondary text-xs py-1 px-3 flex items-center gap-1.5 text-slate-300 border-white/10 hover:bg-white/5"
+              className="btn btn-secondary text-xs py-1 px-3 flex items-center gap-1.5 text-zinc-300 border-white/[0.06] hover:bg-white/5"
             >
               <span>Raw JSON Endpoint</span>
               <ExternalLink className="w-3 h-3" />
@@ -748,17 +750,17 @@ const getBuyerDialogue = (persona, round, qty, bid) => {
       </header>
 
       {/* Navigation Tabs */}
-      <div className="border-b border-white/[0.06] bg-[#0f1118] px-6">
+      <div className="border-b border-white/[0.06] bg-zinc-900 px-6 shrink-0">
         <div className="max-w-7xl mx-auto flex items-center gap-6">
           <button
             onClick={() => setActiveTab('catalog')}
             className={`py-3 text-xs font-semibold flex items-center gap-2 border-b-2 transition-colors cursor-pointer ${
               activeTab === 'catalog'
-                ? 'border-indigo-500 text-white'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
+                ? 'border-emerald-500 text-zinc-50'
+                : 'border-transparent text-zinc-400 hover:text-zinc-200'
             }`}
           >
-            <Layers className="w-4 h-4 text-indigo-400" />
+            <Layers className="w-4 h-4 text-emerald-400" />
             <span>Agent-Readable Inventory ({catalog?.items?.length || 0} SKUs)</span>
           </button>
 
@@ -766,8 +768,8 @@ const getBuyerDialogue = (persona, round, qty, bid) => {
             onClick={() => setActiveTab('simulator')}
             className={`py-3 text-xs font-semibold flex items-center gap-2 border-b-2 transition-colors cursor-pointer ${
               activeTab === 'simulator'
-                ? 'border-indigo-500 text-white'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
+                ? 'border-emerald-500 text-zinc-50'
+                : 'border-transparent text-zinc-400 hover:text-zinc-200'
             }`}
           >
             <Terminal className="w-4 h-4 text-emerald-400" />
@@ -778,14 +780,14 @@ const getBuyerDialogue = (persona, round, qty, bid) => {
             onClick={() => setActiveTab('ledger')}
             className={`py-3 text-xs font-semibold flex items-center gap-2 border-b-2 transition-colors cursor-pointer ${
               activeTab === 'ledger'
-                ? 'border-indigo-500 text-white'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
+                ? 'border-emerald-500 text-zinc-50'
+                : 'border-transparent text-zinc-400 hover:text-zinc-200'
             }`}
           >
-            <History className="w-4 h-4 text-purple-400" />
+            <History className="w-4 h-4 text-emerald-400" />
             <span>Buyer Procurement Ledger</span>
             {ordersSummary?.total_deals > 0 && (
-              <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-purple-500/20 text-purple-300 font-mono font-bold">
+              <span className="px-1.5 py-0.2 rounded text-[10px] bg-emerald-500/20 text-emerald-300 font-mono font-bold">
                 {ordersSummary.total_deals}
               </span>
             )}
@@ -795,23 +797,23 @@ const getBuyerDialogue = (persona, round, qty, bid) => {
             onClick={() => setActiveTab('docs')}
             className={`py-3 text-xs font-semibold flex items-center gap-2 border-b-2 transition-colors cursor-pointer ${
               activeTab === 'docs'
-                ? 'border-indigo-500 text-white'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
+                ? 'border-emerald-500 text-zinc-50'
+                : 'border-transparent text-zinc-400 hover:text-zinc-200'
             }`}
           >
-            <FileCode className="w-4 h-4 text-sky-400" />
-            <span>API Gateway Specifications & cURL</span>
+            <FileCode className="w-4 h-4 text-zinc-400" />
+            <span>API Gateway Specs</span>
           </button>
 
           <button
             onClick={() => setActiveTab('mcp')}
             className={`py-3 text-xs font-semibold flex items-center gap-2 border-b-2 transition-colors cursor-pointer ${
               activeTab === 'mcp'
-                ? 'border-indigo-500 text-white'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
+                ? 'border-emerald-500 text-zinc-50'
+                : 'border-transparent text-zinc-400 hover:text-zinc-200'
             }`}
           >
-            <Code className="w-4 h-4 text-amber-400" />
+            <Code className="w-4 h-4 text-zinc-400" />
             <span>MCP Tool Definition</span>
           </button>
         </div>
@@ -822,58 +824,58 @@ const getBuyerDialogue = (persona, round, qty, bid) => {
         {/* TAB 1: CATALOG VIEW */}
         {activeTab === 'catalog' && (
           <div className="space-y-6">
-            <div className="p-4 rounded-xl bg-[#131620] border border-white/10 flex items-center justify-between">
+            <div className="p-4 rounded-lg bg-zinc-900 border border-white/[0.06] flex items-center justify-between">
               <div>
-                <h2 className="text-base font-bold text-white">Live Warehouse Catalog Schema</h2>
-                <p className="text-xs text-slate-400 mt-0.5">
+                <h2 className="text-base font-bold text-zinc-100">Live Warehouse Catalog Schema</h2>
+                <p className="text-xs text-zinc-500 mt-0.5">
                   Autonomous agents query this endpoint to discover SKUs, real-time ready stock, and volume discount brackets.
                 </p>
               </div>
-              <div className="font-mono text-xs text-indigo-300 bg-indigo-950/40 px-3 py-1.5 rounded border border-indigo-500/20">
+              <div className="font-mono text-xs text-emerald-400 bg-emerald-500/10 px-3 py-1.5 rounded border border-emerald-500/20">
                 GET /api/agent/catalog
               </div>
             </div>
 
             {loading ? (
-              <div className="text-center py-12 text-slate-500 font-mono text-xs">Loading Catalog Schema...</div>
+              <div className="text-center py-12 text-zinc-500 font-mono text-xs">Loading Catalog Schema...</div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {catalog?.items?.map((item) => (
                   <div
                     key={item.sku}
-                    className="p-4 rounded-xl bg-[#131722] border border-white/10 flex flex-col justify-between hover:border-indigo-500/40 transition-colors"
+                    className="p-4 rounded-lg bg-zinc-900 border border-white/[0.06] flex flex-col justify-between hover:border-emerald-500/30 transition-colors"
                   >
                     <div>
                       <div className="flex items-center justify-between gap-2 mb-2">
-                        <span className="font-mono text-[10px] px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 font-bold">
+                        <span className="font-mono text-[10px] px-2 py-0.5 rounded bg-zinc-800 text-zinc-200 border border-white/[0.06] font-bold">
                           {item.sku}
                         </span>
                         <span className={`text-[10px] font-mono px-2 py-0.5 rounded ${
-                          item.ready_stock > 50 ? 'bg-emerald-500/10 text-emerald-300' : 'bg-amber-500/10 text-amber-300'
+                          item.ready_stock > 50 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-300'
                         }`}>
                           {item.ready_stock} {item.unit} in stock
                         </span>
                       </div>
 
-                      <h3 className="font-bold text-sm text-white">{item.name}</h3>
-                      <p className="text-xs text-slate-400 mt-1 line-clamp-2">{item.description}</p>
+                      <h3 className="font-bold text-sm text-zinc-100">{item.name}</h3>
+                      <p className="text-xs text-zinc-400 mt-1 line-clamp-2">{item.description}</p>
                     </div>
 
-                    <div className="mt-4 pt-3 border-t border-white/5 space-y-2">
+                    <div className="mt-4 pt-3 border-t border-white/[0.04] space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs text-slate-400">List Price (Anchor):</span>
-                        <span className="text-sm font-bold text-white font-mono">₹{item.list_price_inr}</span>
+                        <span className="text-xs text-zinc-500">List Price (Anchor):</span>
+                        <span className="text-sm font-bold text-zinc-100 font-mono">₹{item.list_price_inr}</span>
                       </div>
 
                       {item.volume_discount_tiers?.length > 0 && (
                         <div>
-                          <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block mb-1">
+                          <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider block mb-1">
                             Volume Discount Tiers:
                           </span>
                           <div className="space-y-1">
                             {item.volume_discount_tiers.map((tier, i) => (
-                              <div key={i} className="flex items-center justify-between text-[11px] font-mono bg-black/30 px-2 py-0.5 rounded">
-                                <span className="text-slate-300">{tier.min_quantity}+ units</span>
+                              <div key={i} className="flex items-center justify-between text-[11px] font-mono bg-zinc-950/60 px-2 py-0.5 rounded border border-white/[0.04]">
+                                <span className="text-zinc-400">{tier.min_quantity}+ units</span>
                                 <span className="text-emerald-400">{tier.max_discount_pct}% off (~₹{tier.estimated_rate_inr})</span>
                               </div>
                             ))}
@@ -892,396 +894,396 @@ const getBuyerDialogue = (persona, round, qty, bid) => {
         {activeTab === 'simulator' && (
           <div className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Control Panel */}
-            <div className="p-5 rounded-xl bg-[#131620] border border-white/10 space-y-4">
-              <div className="flex items-center gap-2 text-white font-bold text-sm">
-                <Terminal className="w-4 h-4 text-emerald-400" />
-                <span>External Agent Configuration</span>
-              </div>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Dispatch an external AI procurement bot over real HTTP requests directly to the Parlay gateway. Watch the live negotiation unfold below.
-              </p>
-
-              <div className="space-y-3 pt-2">
-                <div>
-                  <label className="text-xs font-mono text-slate-400 block mb-1">Select Buyer Bot Persona:</label>
-                  <select
-                    value={simPersona}
-                    onChange={(e) => setSimPersona(e.target.value)}
-                    disabled={isSimRunning}
-                    className="w-full bg-[#1b1f2e] border border-white/10 rounded-lg p-2 text-xs text-white font-mono"
-                  >
-                    <option value="reasonable">Reasonable SME Procurement Bot (Fair Haggler)</option>
-                    <option value="lowballer">Aggressive Lowballer (Tests Margin Limits & HITL)</option>
-                    <option value="impatient_enterprise">Impatient Enterprise Buyer (Time-Critical / Fast Closer)</option>
-                    <option value="floor_tester">Adversarial Floor Tester (Attacks Firewall)</option>
-                  </select>
+              {/* Control Panel */}
+              <div className="p-5 rounded-lg bg-zinc-900 border border-white/[0.06] space-y-4">
+                <div className="flex items-center gap-2 text-zinc-100 font-bold text-sm">
+                  <Terminal className="w-4 h-4 text-emerald-400" />
+                  <span>External Agent Configuration</span>
                 </div>
+                <p className="text-xs text-zinc-500 leading-relaxed">
+                  Dispatch an external AI procurement bot over real HTTP requests directly to the Parlay gateway. Watch the live negotiation unfold below.
+                </p>
 
-                <div>
-                  <label className="text-xs font-mono text-slate-400 block mb-1">Target Product SKU:</label>
-                  <select
-                    value={simSku}
-                    onChange={(e) => setSimSku(e.target.value)}
-                    disabled={isSimRunning}
-                    className="w-full bg-[#1b1f2e] border border-white/10 rounded-lg p-2 text-xs text-white font-mono"
-                  >
-                    {catalog?.items?.map((it) => (
-                      <option key={it.sku} value={it.sku}>
-                        {it.name} (₹{it.list_price_inr})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-xs font-mono text-slate-400 block mb-1">Order Quantity (Units):</label>
-                  <input
-                    type="number"
-                    value={simQty}
-                    onChange={(e) => setSimQty(e.target.value)}
-                    disabled={isSimRunning}
-                    className="w-full bg-[#1b1f2e] border border-white/10 rounded-lg p-2 text-xs text-white font-mono"
-                  />
-                </div>
-
-                {/* Autonomous M2M Settlement Toggle */}
-                <div className="flex items-center gap-2 p-2.5 rounded-lg bg-black/40 border border-white/10 text-[11px] font-mono">
-                  <input
-                    type="checkbox"
-                    id="autoSettleCheck"
-                    checked={autoSettle}
-                    onChange={(e) => setAutoSettle(e.target.checked)}
-                    disabled={isSimRunning}
-                    className="w-4 h-4 accent-indigo-500 rounded cursor-pointer"
-                  />
-                  <label htmlFor="autoSettleCheck" className="text-slate-300 cursor-pointer select-none">
-                    <span className="font-bold text-white block text-[10px]">Instant M2M Settlement</span>
-                    <span className="text-[9px] text-slate-400">Autonomous capture upon deal close</span>
-                  </label>
-                </div>
-
-                <button
-                  onClick={() => runSimulator()}
-                  disabled={isSimRunning}
-                  className="w-full btn btn-primary py-2.5 text-xs font-bold flex items-center justify-center gap-2 cursor-pointer mt-1"
-                >
-                  <Play className={`w-3.5 h-3.5 ${isSimRunning ? 'animate-spin' : ''}`} />
-                  <span>{isSimRunning ? 'Agent Negotiating in Real Time...' : 'Launch Autonomous Buyer Agent'}</span>
-                </button>
-
-                {/* Gateway Telemetry HUD */}
-                <div className="p-3.5 rounded-lg bg-black/60 border border-white/10 text-[11px] font-mono space-y-2">
-                  <div className="flex items-center justify-between border-b border-white/5 pb-1.5">
-                    <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">A2A Gateway Telemetry</span>
-                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">ONLINE</span>
+                <div className="space-y-3 pt-2">
+                  <div>
+                    <label className="text-xs font-mono text-zinc-400 block mb-1">Select Buyer Bot Persona:</label>
+                    <select
+                      value={simPersona}
+                      onChange={(e) => setSimPersona(e.target.value)}
+                      disabled={isSimRunning}
+                      className="w-full bg-zinc-950 border border-white/[0.06] rounded p-2 text-xs text-zinc-200 font-mono outline-none focus:border-emerald-500/40"
+                    >
+                      <option value="reasonable">Reasonable SME Procurement Bot (Fair Haggler)</option>
+                      <option value="lowballer">Aggressive Lowballer (Tests Margin Limits & HITL)</option>
+                      <option value="impatient_enterprise">Impatient Enterprise Buyer (Time-Critical / Fast Closer)</option>
+                      <option value="floor_tester">Adversarial Floor Tester (Attacks Firewall)</option>
+                    </select>
                   </div>
-                  <div className="flex items-center justify-between text-slate-300">
-                    <span className="text-slate-500">Security Engine</span>
-                    <span className="text-emerald-400 font-bold">Deterministic Firewall</span>
+
+                  <div>
+                    <label className="text-xs font-mono text-zinc-400 block mb-1">Target Product SKU:</label>
+                    <select
+                      value={simSku}
+                      onChange={(e) => setSimSku(e.target.value)}
+                      disabled={isSimRunning}
+                      className="w-full bg-zinc-950 border border-white/[0.06] rounded p-2 text-xs text-zinc-200 font-mono outline-none focus:border-emerald-500/40"
+                    >
+                      {catalog?.items?.map((it) => (
+                        <option key={it.sku} value={it.sku}>
+                          {it.name} (₹{it.list_price_inr})
+                        </option>
+                      ))}
+                    </select>
                   </div>
-                  <div className="flex items-center justify-between text-slate-300">
-                    <span className="text-slate-500">Settlement Rail</span>
-                    <span className="text-sky-300 font-bold">Razorpay Test Sandbox</span>
+
+                  <div>
+                    <label className="text-xs font-mono text-zinc-400 block mb-1">Order Quantity (Units):</label>
+                    <input
+                      type="number"
+                      value={simQty}
+                      onChange={(e) => setSimQty(e.target.value)}
+                      disabled={isSimRunning}
+                      className="w-full bg-zinc-950 border border-white/[0.06] rounded p-2 text-xs text-zinc-200 font-mono outline-none focus:border-emerald-500/40"
+                    />
                   </div>
-                  <div className="flex items-center justify-between text-slate-300">
-                    <span className="text-slate-500">Prompt Defense</span>
-                    <span className="text-purple-300 font-bold">Adversarial Quarantine</span>
+
+                  {/* Autonomous M2M Settlement Toggle */}
+                  <div className="flex items-center gap-2 p-2.5 rounded bg-zinc-950 border border-white/[0.04] text-[11px] font-mono">
+                    <input
+                      type="checkbox"
+                      id="autoSettleCheck"
+                      checked={autoSettle}
+                      onChange={(e) => setAutoSettle(e.target.checked)}
+                      disabled={isSimRunning}
+                      className="w-4 h-4 accent-emerald-500 rounded cursor-pointer"
+                    />
+                    <label htmlFor="autoSettleCheck" className="text-zinc-300 cursor-pointer select-none">
+                      <span className="font-bold text-zinc-100 block text-[10px]">Instant M2M Settlement</span>
+                      <span className="text-[9px] text-zinc-500">Autonomous capture upon deal close</span>
+                    </label>
                   </div>
-                  <div className="flex items-center justify-between text-slate-300">
-                    <span className="text-slate-500">A2A Protocol</span>
-                    <span className="text-indigo-300 font-bold">REST / MCP Tool v1.0</span>
-                  </div>
-                </div>
 
-                {/* Customer Memory & Reputation Intelligence HUD */}
-                {(() => {
-                  const activeProfile = customerProfiles.find(p => p.persona_key === simPersona || p.buyer_id === simPersona) || {
-                    company_name: simPersona === 'reasonable' ? 'Apex Global Procurement' :
-                                  simPersona === 'lowballer' ? 'Titan Bulk Liquidators' :
-                                  simPersona === 'impatient_enterprise' ? 'Nexus FastTrack Logistics' : 'Spectre Automated Arbitrage',
-                    trust_score: simPersona === 'reasonable' ? 65 : simPersona === 'lowballer' ? 25 : simPersona === 'impatient_enterprise' ? 55 : 20,
-                    loyalty_tier: simPersona === 'reasonable' ? 'GROWTH_ACCOUNT' : simPersona === 'lowballer' ? 'CHRONIC_LOWBALLER' : 'WATCHLIST',
-                    lifetime_spend_inr: 0,
-                    deals_closed_count: 0,
-                    lowball_strikes: simPersona === 'lowballer' ? 2 : 0,
-                    discount_elasticity_bonus: simPersona === 'reasonable' ? 1.5 : -3
-                  };
-
-                  return (
-                    <div className="p-3.5 rounded-lg bg-gradient-to-br from-[#121626] to-[#0d101a] border border-indigo-500/20 text-[11px] font-mono space-y-2.5">
-                      <div className="flex items-center justify-between border-b border-white/10 pb-1.5">
-                        <div className="flex items-center gap-1.5">
-                          <Award className="w-3.5 h-3.5 text-indigo-400" />
-                          <span className="text-[10px] text-indigo-300 uppercase tracking-wider font-bold">LTV & Reputation Memory</span>
-                        </div>
-                        <span className="text-[9px] px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-300 font-bold border border-indigo-500/30">
-                          LIVE
-                        </span>
-                      </div>
-
-                      <div className="space-y-1">
-                        <div className="text-white font-bold text-xs truncate">
-                          {activeProfile.company_name}
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-slate-400 text-[10px]">Tier:</span>
-                          <span className={`text-[9px] px-1.5 py-0.2 rounded font-bold ${
-                            activeProfile.loyalty_tier === 'VIP_PARTNER' ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' :
-                            activeProfile.loyalty_tier === 'GROWTH_ACCOUNT' ? 'bg-sky-500/20 text-sky-300 border border-sky-500/30' :
-                            activeProfile.loyalty_tier === 'CHRONIC_LOWBALLER' ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30' :
-                            'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                          }`}>
-                            {activeProfile.loyalty_tier?.replace('_', ' ')}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Trust Score Progress Bar */}
-                      <div className="space-y-1">
-                        <div className="flex items-center justify-between text-[10px]">
-                          <span className="text-slate-400">Trust Score:</span>
-                          <span className={`font-bold ${
-                            activeProfile.trust_score >= 80 ? 'text-purple-300' :
-                            activeProfile.trust_score >= 50 ? 'text-sky-300' :
-                            activeProfile.trust_score >= 30 ? 'text-amber-300' : 'text-rose-400'
-                          }`}>
-                            {activeProfile.trust_score || 50}/100
-                          </span>
-                        </div>
-                        <div className="w-full h-1.5 bg-black/60 rounded-full overflow-hidden border border-white/5">
-                          <div 
-                            className={`h-full rounded-full transition-all duration-500 ${
-                              activeProfile.trust_score >= 80 ? 'bg-purple-400' :
-                              activeProfile.trust_score >= 50 ? 'bg-sky-400' :
-                              activeProfile.trust_score >= 30 ? 'bg-amber-400' : 'bg-rose-500'
-                            }`}
-                            style={{ width: `${Math.min(100, Math.max(5, activeProfile.trust_score || 50))}%` }}
-                          />
-                        </div>
-                      </div>
-
-                      <div className="pt-1.5 border-t border-white/5 grid grid-cols-2 gap-2 text-[10px]">
-                        <div>
-                          <span className="text-slate-500 block">Lifetime Value</span>
-                          <span className="text-emerald-400 font-bold">₹{(activeProfile.lifetime_spend_inr || 0).toLocaleString()}</span>
-                        </div>
-                        <div>
-                          <span className="text-slate-500 block">Deals Fulfilled</span>
-                          <span className="text-white font-bold">{activeProfile.deals_closed_count || 0} contracts</span>
-                        </div>
-                        <div>
-                          <span className="text-slate-500 block">Elasticity Bonus</span>
-                          <span className={`font-bold ${activeProfile.discount_elasticity_bonus >= 0 ? 'text-indigo-400' : 'text-rose-400'}`}>
-                            {activeProfile.discount_elasticity_bonus >= 0 ? `+${activeProfile.discount_elasticity_bonus}%` : `${activeProfile.discount_elasticity_bonus}%`}
-                          </span>
-                        </div>
-                        <div>
-                          <span className="text-slate-500 block">Lowball Strikes</span>
-                          <span className={`font-bold ${activeProfile.lowball_strikes > 0 ? 'text-rose-400' : 'text-slate-400'}`}>
-                            {activeProfile.lowball_strikes || 0}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="p-1.5 rounded bg-black/40 border border-white/5 text-[9px] text-slate-400 italic">
-                        💡 Dynamic Evolution: Lowball strikes decay and trust rehabilitates automatically upon completing legitimate paid contracts.
-                      </div>
-                    </div>
-                  );
-                })()}
-              </div>
-            </div>
-
-            {/* Terminal Screen with Interactive Command Line */}
-            <div className="lg:col-span-2 rounded-xl bg-black border border-white/15 flex flex-col h-[560px] overflow-hidden shadow-2xl font-mono">
-              {/* Terminal Title Bar */}
-              <div className="bg-[#191c26] px-4 py-2 flex items-center justify-between border-b border-white/10 shrink-0">
-                <div className="flex items-center gap-2">
-                  <div className="w-2.5 h-2.5 rounded-full bg-rose-500/80" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-amber-500/80" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/80" />
-                  <span className="text-[11px] text-slate-400 ml-2 font-mono">
-                    external-buyer-bot --persona={simPersona} --target=localhost:5000
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] text-slate-500 hidden sm:inline">A2A HTTP Stream</span>
                   <button
-                    onClick={() => setSimLogs([])}
-                    className="text-[9px] px-1.5 py-0.5 rounded bg-white/5 hover:bg-white/10 text-slate-400 cursor-pointer"
+                    onClick={() => runSimulator()}
+                    disabled={isSimRunning}
+                    className="w-full btn btn-primary py-2.5 text-xs font-bold flex items-center justify-center gap-2 cursor-pointer mt-1"
                   >
-                    Clear
+                    <Play className={`w-3.5 h-3.5 ${isSimRunning ? 'animate-spin' : ''}`} />
+                    <span>{isSimRunning ? 'Agent Negotiating in Real Time...' : 'Launch Autonomous Buyer Agent'}</span>
+                  </button>
+
+                  {/* Gateway Telemetry HUD */}
+                  <div className="p-3.5 rounded bg-zinc-950 border border-white/[0.04] text-[11px] font-mono space-y-2">
+                    <div className="flex items-center justify-between border-b border-white/[0.04] pb-1.5">
+                      <span className="text-[10px] text-zinc-400 uppercase tracking-wider font-bold">A2A Gateway Telemetry</span>
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">ONLINE</span>
+                    </div>
+                    <div className="flex items-center justify-between text-zinc-300">
+                      <span className="text-zinc-500">Security Engine</span>
+                      <span className="text-emerald-400 font-bold">Deterministic Firewall</span>
+                    </div>
+                    <div className="flex items-center justify-between text-zinc-300">
+                      <span className="text-zinc-500">Settlement Rail</span>
+                      <span className="text-zinc-300 font-bold">Razorpay Test Sandbox</span>
+                    </div>
+                    <div className="flex items-center justify-between text-zinc-300">
+                      <span className="text-zinc-500">Prompt Defense</span>
+                      <span className="text-zinc-300 font-bold">Adversarial Quarantine</span>
+                    </div>
+                    <div className="flex items-center justify-between text-zinc-300">
+                      <span className="text-zinc-500">A2A Protocol</span>
+                      <span className="text-emerald-400 font-bold">REST / MCP Tool v1.0</span>
+                    </div>
+                  </div>
+
+                  {/* Customer Memory & Reputation Intelligence HUD */}
+                  {(() => {
+                    const activeProfile = customerProfiles.find(p => p.persona_key === simPersona || p.buyer_id === simPersona) || {
+                      company_name: simPersona === 'reasonable' ? 'Apex Global Procurement' :
+                                    simPersona === 'lowballer' ? 'Titan Bulk Liquidators' :
+                                    simPersona === 'impatient_enterprise' ? 'Nexus FastTrack Logistics' : 'Spectre Automated Arbitrage',
+                      trust_score: simPersona === 'reasonable' ? 65 : simPersona === 'lowballer' ? 25 : simPersona === 'impatient_enterprise' ? 55 : 20,
+                      loyalty_tier: simPersona === 'reasonable' ? 'GROWTH_ACCOUNT' : simPersona === 'lowballer' ? 'CHRONIC_LOWBALLER' : 'WATCHLIST',
+                      lifetime_spend_inr: 0,
+                      deals_closed_count: 0,
+                      lowball_strikes: simPersona === 'lowballer' ? 2 : 0,
+                      discount_elasticity_bonus: simPersona === 'reasonable' ? 1.5 : -3
+                    };
+
+                    return (
+                      <div className="p-3.5 rounded bg-zinc-950 border border-white/[0.04] text-[11px] font-mono space-y-2.5">
+                        <div className="flex items-center justify-between border-b border-white/[0.04] pb-1.5">
+                          <div className="flex items-center gap-1.5">
+                            <Award className="w-3.5 h-3.5 text-emerald-400" />
+                            <span className="text-[10px] text-zinc-300 uppercase tracking-wider font-bold">LTV & Reputation Memory</span>
+                          </div>
+                          <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 font-bold border border-emerald-500/25">
+                            LIVE
+                          </span>
+                        </div>
+
+                        <div className="space-y-1">
+                          <div className="text-zinc-100 font-bold text-xs truncate">
+                            {activeProfile.company_name}
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-zinc-500 text-[10px]">Tier:</span>
+                            <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold ${
+                              activeProfile.loyalty_tier === 'VIP_PARTNER' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' :
+                              activeProfile.loyalty_tier === 'GROWTH_ACCOUNT' ? 'bg-zinc-800 text-zinc-300 border border-zinc-700/60' :
+                              activeProfile.loyalty_tier === 'CHRONIC_LOWBALLER' ? 'bg-red-500/20 text-red-300 border border-red-500/30' :
+                              'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                            }`}>
+                              {activeProfile.loyalty_tier?.replace('_', ' ')}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Trust Score Progress Bar */}
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between text-[10px]">
+                            <span className="text-zinc-500">Trust Score:</span>
+                            <span className={`font-bold ${
+                              activeProfile.trust_score >= 80 ? 'text-emerald-400' :
+                              activeProfile.trust_score >= 50 ? 'text-emerald-500/80' :
+                              activeProfile.trust_score >= 30 ? 'text-amber-400' : 'text-red-400'
+                            }`}>
+                              {activeProfile.trust_score || 50}/100
+                            </span>
+                          </div>
+                          <div className="w-full h-1.5 bg-zinc-800 rounded-full overflow-hidden border border-white/[0.04]">
+                            <div 
+                              className={`h-full rounded-full transition-all duration-500 ${
+                                activeProfile.trust_score >= 80 ? 'bg-emerald-400' :
+                                activeProfile.trust_score >= 50 ? 'bg-emerald-500/70' :
+                                activeProfile.trust_score >= 30 ? 'bg-amber-400' : 'bg-red-500'
+                              }`}
+                              style={{ width: `${Math.min(100, Math.max(5, activeProfile.trust_score || 50))}%` }}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="pt-1.5 border-t border-white/[0.04] grid grid-cols-2 gap-2 text-[10px]">
+                          <div>
+                            <span className="text-zinc-500 block">Lifetime Value</span>
+                            <span className="text-emerald-400 font-bold">₹{(activeProfile.lifetime_spend_inr || 0).toLocaleString()}</span>
+                          </div>
+                          <div>
+                            <span className="text-zinc-500 block">Deals Fulfilled</span>
+                            <span className="text-zinc-200 font-bold">{activeProfile.deals_closed_count || 0} contracts</span>
+                          </div>
+                          <div>
+                            <span className="text-zinc-500 block">Elasticity Bonus</span>
+                            <span className={`font-bold ${activeProfile.discount_elasticity_bonus >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                              {activeProfile.discount_elasticity_bonus >= 0 ? `+${activeProfile.discount_elasticity_bonus}%` : `${activeProfile.discount_elasticity_bonus}%`}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-zinc-500 block">Lowball Strikes</span>
+                            <span className={`font-bold ${activeProfile.lowball_strikes > 0 ? 'text-red-400' : 'text-zinc-400'}`}>
+                              {activeProfile.lowball_strikes || 0}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="p-1.5 rounded bg-black/40 border border-white/[0.04] text-[9px] text-zinc-500 italic">
+                          Dynamic Evolution: Lowball strikes decay and trust rehabilitates automatically upon completing legitimate paid contracts.
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              </div>
+
+              {/* Terminal Screen with Interactive Command Line */}
+              <div className="lg:col-span-2 rounded-lg bg-black border border-white/10 flex flex-col h-[560px] overflow-hidden shadow-2xl font-mono">
+                {/* Terminal Title Bar */}
+                <div className="bg-zinc-900 px-4 py-2 flex items-center justify-between border-b border-white/[0.06] shrink-0">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2.5 h-2.5 rounded-full bg-red-500/80" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-amber-500/80" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/80" />
+                    <span className="text-[11px] text-zinc-400 ml-2 font-mono">
+                      external-buyer-bot --persona={simPersona} --target=localhost:5000
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-zinc-500 hidden sm:inline">A2A HTTP Stream</span>
+                    <button
+                      onClick={() => setSimLogs([])}
+                      className="text-[9px] px-1.5 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-400 cursor-pointer"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                </div>
+
+                {/* Quick CLI Command Pills */}
+                <div className="bg-zinc-950 px-3 py-1.5 border-b border-white/[0.04] flex items-center gap-1.5 overflow-x-auto text-[10px] text-zinc-400 shrink-0">
+                  <span className="text-zinc-500 text-[9px] uppercase font-bold">Quick Run:</span>
+                  <button
+                    onClick={() => { setSimPersona('reasonable'); runSimulator('reasonable'); }}
+                    disabled={isSimRunning}
+                    className="px-2 py-0.5 rounded bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/25 cursor-pointer"
+                  >
+                    run --reasonable
+                  </button>
+                  <button
+                    onClick={() => { setSimPersona('lowballer'); runSimulator('lowballer'); }}
+                    disabled={isSimRunning}
+                    className="px-2 py-0.5 rounded bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/20 cursor-pointer"
+                  >
+                    run --lowballer (HITL)
+                  </button>
+                  <button
+                    onClick={() => { setSimPersona('floor_tester'); runSimulator('floor_tester'); }}
+                    disabled={isSimRunning}
+                    className="px-2 py-0.5 rounded bg-red-500/10 hover:bg-red-500/20 text-red-300 border border-red-500/20 cursor-pointer"
+                  >
+                    run --floor_tester (Firewall)
+                  </button>
+                  <button
+                    onClick={() => { setSimPersona('impatient_enterprise'); runSimulator('impatient_enterprise'); }}
+                    disabled={isSimRunning}
+                    className="px-2 py-0.5 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-white/[0.06] cursor-pointer"
+                  >
+                    run --impatient
                   </button>
                 </div>
-              </div>
 
-              {/* Quick CLI Command Pills */}
-              <div className="bg-[#11131a] px-3 py-1.5 border-b border-white/5 flex items-center gap-1.5 overflow-x-auto text-[10px] text-slate-400 shrink-0">
-                <span className="text-slate-500 text-[9px] uppercase font-bold">Quick Run:</span>
-                <button
-                  onClick={() => { setSimPersona('reasonable'); runSimulator('reasonable'); }}
-                  disabled={isSimRunning}
-                  className="px-2 py-0.5 rounded bg-sky-500/10 hover:bg-sky-500/20 text-sky-300 border border-sky-500/20 cursor-pointer"
-                >
-                  run --reasonable
-                </button>
-                <button
-                  onClick={() => { setSimPersona('lowballer'); runSimulator('lowballer'); }}
-                  disabled={isSimRunning}
-                  className="px-2 py-0.5 rounded bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/20 cursor-pointer"
-                >
-                  run --lowballer (HITL)
-                </button>
-                <button
-                  onClick={() => { setSimPersona('floor_tester'); runSimulator('floor_tester'); }}
-                  disabled={isSimRunning}
-                  className="px-2 py-0.5 rounded bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/20 cursor-pointer"
-                >
-                  run --floor_tester (Firewall)
-                </button>
-                <button
-                  onClick={() => { setSimPersona('impatient_enterprise'); runSimulator('impatient_enterprise'); }}
-                  disabled={isSimRunning}
-                  className="px-2 py-0.5 rounded bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 border border-purple-500/20 cursor-pointer"
-                >
-                  run --impatient
-                </button>
-              </div>
+                {/* Terminal Logs Window (Black inside with contrast colored logs preserved!) */}
+                <div ref={terminalLogsContainerRef} className="flex-1 p-4 overflow-y-auto space-y-1.5 text-xs text-zinc-300 min-h-0 bg-black">
+                  {simLogs.length === 0 && !isSimRunning && (
+                    <div className="h-full flex flex-col items-center justify-center text-zinc-600 text-center">
+                      <Terminal className="w-8 h-8 text-zinc-700 mb-2" />
+                      <p className="text-zinc-400 font-bold">A2A Autonomous CLI Terminal</p>
+                      <p className="text-[11px] mt-1">Type <span className="text-emerald-400 font-bold">run</span>, click a quick command above, or hit Launch to execute.</p>
+                    </div>
+                  )}
 
-              {/* Terminal Logs Window */}
-              <div ref={terminalLogsContainerRef} className="flex-1 p-4 overflow-y-auto space-y-1.5 text-xs text-slate-300 min-h-0">
-                {simLogs.length === 0 && !isSimRunning && (
-                  <div className="h-full flex flex-col items-center justify-center text-slate-600 text-center">
-                    <Terminal className="w-8 h-8 text-slate-700 mb-2" />
-                    <p className="text-slate-400 font-bold">A2A Autonomous CLI Terminal</p>
-                    <p className="text-[11px] mt-1">Type <span className="text-indigo-400 font-bold">run</span>, click a quick command above, or hit Launch to execute.</p>
-                  </div>
-                )}
-
-                {simLogs.map((logItem, idx) => (
-                  <div key={idx} className="flex gap-2">
-                    <span className="text-slate-600 select-none text-[10px] shrink-0">{logItem.timestamp}</span>
-                    <span className={getLogColorClass(logItem.type)}>{logItem.text}</span>
-                  </div>
-                ))}
-              </div>
-
-              {/* Interactive CLI Input Field */}
-              <form onSubmit={handleTerminalSubmit} className="bg-[#141722] border-t border-white/10 px-3 py-2 flex items-center gap-2 shrink-0">
-                <span className="text-emerald-400 text-xs font-mono font-bold select-none">agent@parlay:~$</span>
-                <input
-                  type="text"
-                  value={terminalInput}
-                  onChange={(e) => setTerminalInput(e.target.value)}
-                  disabled={isSimRunning}
-                  placeholder={isSimRunning ? 'Agent executing in real time...' : "Type 'run', 'help', 'catalog', or 'clear'..."}
-                  className="flex-1 bg-transparent text-xs font-mono text-white outline-none placeholder-slate-600"
-                />
-                <button
-                  type="submit"
-                  disabled={isSimRunning || !terminalInput.trim()}
-                  className="text-[10px] font-mono px-2.5 py-1 rounded bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border border-indigo-500/30 disabled:opacity-30 cursor-pointer"
-                >
-                  Enter ↵
-                </button>
-              </form>
-            </div>
-          </div>
-
-          {/* Buyer Settlement Station (Appears when Deal is Closed) */}
-          {closedSession && (
-            <div className="mt-4 p-4 rounded-xl bg-[#151824] border border-indigo-500/30 flex flex-col md:flex-row items-center justify-between gap-4 font-mono shadow-2xl">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-sm font-bold text-white">
-                    {closedSession.product_name} — Deal Closed at ₹{closedSession.final_price}/unit
-                  </span>
-                  <span className={`text-[10px] px-2.5 py-0.5 rounded font-bold ${
-                    closedSession.payment_status === 'paid'
-                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                      : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                  }`}>
-                    {closedSession.payment_status === 'paid' ? 'PAID & CAPTURED' : 'PAYMENT DUE (UNPAID)'}
-                  </span>
+                  {simLogs.map((logItem, idx) => (
+                    <div key={idx} className="flex gap-2">
+                      <span className="text-zinc-600 select-none text-[10px] shrink-0">{logItem.timestamp}</span>
+                      <span className={getLogColorClass(logItem.type)}>{logItem.text}</span>
+                    </div>
+                  ))}
                 </div>
-                <p className="text-xs text-slate-400">
-                  Order: {closedSession.quantity} units • Negotiated Subtotal: ₹{Math.round(closedSession.final_price * closedSession.quantity).toLocaleString()} • Total: ₹{Math.round(closedSession.final_price * closedSession.quantity * 1.18).toLocaleString()} (inc. 18% GST)
-                </p>
-              </div>
 
-              <div className="flex items-center gap-2 shrink-0">
-                <button
-                  onClick={() => setIsInvoiceModalOpen(true)}
-                  className="btn btn-secondary py-2 px-3 text-xs flex items-center gap-1.5 text-slate-200 cursor-pointer"
-                >
-                  <FileText className="w-3.5 h-3.5 text-indigo-400" />
-                  <span>{closedSession.payment_status === 'paid' ? 'View Invoice & Receipt' : 'View Proforma Invoice'}</span>
-                </button>
-
-                {closedSession.payment_status !== 'paid' ? (
-                  <>
-                    <button
-                      onClick={() => setIsInvoiceModalOpen(true)}
-                      className="btn btn-primary py-2 px-3.5 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-md"
-                    >
-                      <CreditCard className="w-3.5 h-3.5" />
-                      <span>Pay with Razorpay</span>
-                    </button>
-                    <button
-                      onClick={async () => {
-                        try {
-                          toast.loading('Executing autonomous mandate settlement...', { id: 'settle' });
-                          const res = await axios.post('/agent/settle', {
-                            session_id: closedSession.session_id,
-                            max_authorized_budget: 999999
-                          });
-                          if (res.data.success) {
-                            toast.success('Invoice Settled & Captured Autonomously!', { id: 'settle' });
-                            setClosedSession(prev => ({
-                              ...prev,
-                              payment_status: 'paid',
-                              razorpay_payment_id: res.data.transaction_id,
-                              razorpay_order_id: res.data.razorpay_order_id
-                            }));
-                            fetchBuyerOrders();
-                          }
-                        } catch (e) {
-                          toast.error('Settlement error', { id: 'settle' });
-                        }
-                      }}
-                      className="btn btn-secondary py-2 px-3 text-xs font-bold flex items-center gap-1.5 text-amber-300 border-amber-500/30 hover:bg-amber-500/10 cursor-pointer"
-                    >
-                      <Zap className="w-3.5 h-3.5 text-amber-400" />
-                      <span>Auto Settle (M2M)</span>
-                    </button>
-                  </>
-                ) : (
-                  <span className="text-xs font-bold text-emerald-400 flex items-center gap-1.5 px-3 py-2 rounded bg-emerald-500/10 border border-emerald-500/20">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                    <span>Payment Settled & Confirmed</span>
-                  </span>
-                )}
+                {/* Interactive CLI Input Field */}
+                <form onSubmit={handleTerminalSubmit} className="bg-zinc-950 border-t border-white/[0.06] px-3 py-2 flex items-center gap-2 shrink-0">
+                  <span className="text-emerald-400 text-xs font-mono font-bold select-none">agent@parlay:~$</span>
+                  <input
+                    type="text"
+                    value={terminalInput}
+                    onChange={(e) => setTerminalInput(e.target.value)}
+                    disabled={isSimRunning}
+                    placeholder={isSimRunning ? 'Agent executing in real time...' : "Type 'run', 'help', 'catalog', or 'clear'..."}
+                    className="flex-1 bg-transparent text-xs font-mono text-zinc-100 outline-none placeholder-zinc-600"
+                  />
+                  <button
+                    type="submit"
+                    disabled={isSimRunning || !terminalInput.trim()}
+                    className="text-[10px] font-mono px-2.5 py-1 rounded bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30 disabled:opacity-30 cursor-pointer"
+                  >
+                    Enter ↵
+                  </button>
+                </form>
               </div>
             </div>
-          )}
-        </div>
+
+            {/* Buyer Settlement Station (Appears when Deal is Closed) */}
+            {closedSession && (
+              <div className="mt-4 p-4 rounded-lg bg-zinc-900 border border-emerald-500/30 flex flex-col md:flex-row items-center justify-between gap-4 font-mono shadow-2xl">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-sm font-bold text-zinc-100">
+                      {closedSession.product_name} - Deal Closed at ₹{closedSession.final_price}/unit
+                    </span>
+                    <span className={`text-[10px] px-2.5 py-0.5 rounded font-bold ${
+                      closedSession.payment_status === 'paid'
+                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                        : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                    }`}>
+                      {closedSession.payment_status === 'paid' ? 'PAID & CAPTURED' : 'PAYMENT DUE (UNPAID)'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-zinc-400">
+                    Order: {closedSession.quantity} units • Negotiated Subtotal: ₹{Math.round(closedSession.final_price * closedSession.quantity).toLocaleString()} • Total: ₹{Math.round(closedSession.final_price * closedSession.quantity * 1.18).toLocaleString()} (inc. 18% GST)
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={() => setIsInvoiceModalOpen(true)}
+                    className="btn btn-secondary py-2 px-3 text-xs flex items-center gap-1.5 text-zinc-200 cursor-pointer"
+                  >
+                    <FileText className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>{closedSession.payment_status === 'paid' ? 'View Invoice & Receipt' : 'View Proforma Invoice'}</span>
+                  </button>
+
+                  {closedSession.payment_status !== 'paid' ? (
+                    <>
+                      <button
+                        onClick={() => setIsInvoiceModalOpen(true)}
+                        className="btn btn-primary py-2 px-3.5 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-md"
+                      >
+                        <CreditCard className="w-3.5 h-3.5" />
+                        <span>Pay with Razorpay</span>
+                      </button>
+                      <button
+                        onClick={async () => {
+                          try {
+                            toast.loading('Executing autonomous mandate settlement...', { id: 'settle' });
+                            const res = await axios.post('/agent/settle', {
+                              session_id: closedSession.session_id,
+                              max_authorized_budget: 999999
+                            });
+                            if (res.data.success) {
+                              toast.success('Invoice Settled & Captured Autonomously!', { id: 'settle' });
+                              setClosedSession(prev => ({
+                                ...prev,
+                                payment_status: 'paid',
+                                razorpay_payment_id: res.data.transaction_id,
+                                razorpay_order_id: res.data.razorpay_order_id
+                              }));
+                              fetchBuyerOrders();
+                            }
+                          } catch (e) {
+                            toast.error('Settlement error', { id: 'settle' });
+                          }
+                        }}
+                        className="btn btn-secondary py-2 px-3 text-xs font-bold flex items-center gap-1.5 text-amber-300 border-amber-500/30 hover:bg-amber-500/10 cursor-pointer"
+                      >
+                        <Zap className="w-3.5 h-3.5 text-amber-400" />
+                        <span>Auto Settle (M2M)</span>
+                      </button>
+                    </>
+                  ) : (
+                    <span className="text-xs font-bold text-emerald-400 flex items-center gap-1.5 px-3 py-2 rounded bg-emerald-500/10 border border-emerald-500/20">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                      <span>Payment Settled & Confirmed</span>
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
         )}
 
         {/* TAB 3: BUYER PROCUREMENT LEDGER */}
         {activeTab === 'ledger' && (
           <div className="space-y-6">
             {/* Header & Refresh */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 rounded-xl bg-[#131622] border border-white/10">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 rounded-lg bg-zinc-900 border border-white/[0.06]">
               <div>
-                <h2 className="text-base font-bold text-white flex items-center gap-2">
-                  <History className="w-4 h-4 text-purple-400" />
+                <h2 className="text-base font-bold text-zinc-100 flex items-center gap-2">
+                  <History className="w-4 h-4 text-emerald-400" />
                   <span>Buyer Procurement Audit Ledger</span>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 font-mono border border-purple-500/30">
+                  <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-300 font-mono border border-emerald-500/20">
                     Defensible Enterprise Records
                   </span>
                 </h2>
-                <p className="text-xs text-slate-400 mt-1">
+                <p className="text-xs text-zinc-500 mt-1">
                   Complete historic audit trail of autonomous negotiations, deals closed, capital dispatched, and tax receipts.
                 </p>
               </div>
@@ -1289,42 +1291,42 @@ const getBuyerDialogue = (persona, round, qty, bid) => {
               <button
                 onClick={fetchBuyerOrders}
                 disabled={ordersLoading}
-                className="btn btn-secondary text-xs py-1.5 px-3 flex items-center gap-1.5 text-slate-300 border-white/10 hover:bg-white/5 cursor-pointer shrink-0 self-start md:self-auto"
+                className="btn btn-secondary text-xs py-1.5 px-3 flex items-center gap-1.5 text-zinc-300 border-white/[0.06] hover:bg-white/5 cursor-pointer shrink-0 self-start md:self-auto"
               >
-                <RotateCw className={`w-3.5 h-3.5 ${ordersLoading ? 'animate-spin text-purple-400' : ''}`} />
+                <RotateCw className={`w-3.5 h-3.5 ${ordersLoading ? 'animate-spin text-emerald-400' : ''}`} />
                 <span>Refresh Ledger</span>
               </button>
             </div>
 
             {/* Metrics Cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <div className="p-3.5 rounded-xl bg-[#141824] border border-white/5 flex flex-col">
-                <span className="text-[10px] uppercase font-mono text-slate-400">Total Deals Closed</span>
-                <span className="text-xl font-bold text-white font-mono mt-1">
+              <div className="p-3.5 rounded-lg bg-zinc-900 border border-white/[0.04] flex flex-col">
+                <span className="text-[10px] uppercase font-mono text-zinc-500">Total Deals Closed</span>
+                <span className="text-xl font-bold text-zinc-100 font-mono mt-1">
                   {ordersSummary?.total_deals || 0}
                 </span>
-                <span className="text-[10px] text-purple-400 mt-0.5">Autonomous B2B Contracts</span>
+                <span className="text-[10px] text-emerald-400 mt-0.5">Autonomous B2B Contracts</span>
               </div>
 
-              <div className="p-3.5 rounded-xl bg-[#141824] border border-white/5 flex flex-col">
-                <span className="text-[10px] uppercase font-mono text-slate-400">Capital Dispatched</span>
+              <div className="p-3.5 rounded-lg bg-zinc-900 border border-white/[0.04] flex flex-col">
+                <span className="text-[10px] uppercase font-mono text-zinc-500">Capital Dispatched</span>
                 <span className="text-xl font-bold text-emerald-400 font-mono mt-1">
                   ₹{(ordersSummary?.total_spend_inr || 0).toLocaleString()}
                 </span>
-                <span className="text-[10px] text-slate-500 mt-0.5">Total settled with 18% GST</span>
+                <span className="text-[10px] text-zinc-500 mt-0.5">Total settled with 18% GST</span>
               </div>
 
-              <div className="p-3.5 rounded-xl bg-[#141824] border border-white/5 flex flex-col">
-                <span className="text-[10px] uppercase font-mono text-slate-400">Negotiated Savings</span>
-                <span className="text-xl font-bold text-indigo-400 font-mono mt-1">
+              <div className="p-3.5 rounded-lg bg-zinc-900 border border-white/[0.04] flex flex-col">
+                <span className="text-[10px] uppercase font-mono text-zinc-500">Negotiated Savings</span>
+                <span className="text-xl font-bold text-emerald-400 font-mono mt-1">
                   ₹{(ordersSummary?.total_savings_inr || 0).toLocaleString()}
                 </span>
-                <span className="text-[10px] text-indigo-300/80 mt-0.5">Achieved below Merchant List</span>
+                <span className="text-[10px] text-emerald-300/80 mt-0.5">Achieved below Merchant List</span>
               </div>
 
-              <div className="p-3.5 rounded-xl bg-[#141824] border border-white/5 flex flex-col">
-                <span className="text-[10px] uppercase font-mono text-slate-400">Settlement Health</span>
-                <span className="text-xl font-bold text-white font-mono mt-1">
+              <div className="p-3.5 rounded-lg bg-zinc-900 border border-white/[0.04] flex flex-col">
+                <span className="text-[10px] uppercase font-mono text-zinc-500">Settlement Health</span>
+                <span className="text-xl font-bold text-zinc-100 font-mono mt-1">
                   {ordersSummary?.paid_deals || 0} / {ordersSummary?.total_deals || 0}
                 </span>
                 <span className="text-[10px] text-emerald-400 mt-0.5">
@@ -1334,7 +1336,7 @@ const getBuyerDialogue = (persona, round, qty, bid) => {
             </div>
 
             {/* Filter Pills & Agent Persona Selector */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3 rounded-lg bg-[#10131d] border border-white/5 font-mono text-xs">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3 rounded-lg bg-zinc-950 border border-white/[0.04] font-mono text-xs">
               <div className="flex items-center gap-1.5 flex-wrap">
                 {[
                   { id: 'all', label: 'All Orders' },
@@ -1345,10 +1347,10 @@ const getBuyerDialogue = (persona, round, qty, bid) => {
                   <button
                     key={f.id}
                     onClick={() => setLedgerFilter(f.id)}
-                    className={`px-3 py-1 rounded-md transition-colors cursor-pointer text-xs ${
+                    className={`px-3 py-1 rounded transition-colors cursor-pointer text-xs ${
                       ledgerFilter === f.id
-                        ? 'bg-indigo-600 text-white font-bold shadow-xs'
-                        : 'bg-white/5 text-slate-400 hover:text-white'
+                        ? 'bg-emerald-500 text-zinc-950 font-bold'
+                        : 'bg-zinc-900 text-zinc-400 hover:text-white'
                     }`}
                   >
                     {f.label}
@@ -1357,11 +1359,11 @@ const getBuyerDialogue = (persona, round, qty, bid) => {
               </div>
 
               <div className="flex items-center gap-2">
-                <span className="text-[10px] text-slate-400 uppercase">Agent Persona:</span>
+                <span className="text-[10px] text-zinc-500 uppercase">Agent Persona:</span>
                 <select
                   value={ledgerPersona}
                   onChange={e => setLedgerPersona(e.target.value)}
-                  className="bg-[#151928] border border-white/10 rounded px-2.5 py-1 text-xs text-slate-200 outline-none focus:border-indigo-500 cursor-pointer"
+                  className="bg-zinc-900 border border-white/[0.06] rounded px-2.5 py-1 text-xs text-zinc-200 outline-none focus:border-emerald-500 cursor-pointer"
                 >
                   <option value="all">All Personas</option>
                   <option value="reasonable">Apex Global (Reasonable)</option>
@@ -1374,15 +1376,15 @@ const getBuyerDialogue = (persona, round, qty, bid) => {
 
             {/* Orders Feed */}
             {ordersLoading ? (
-              <div className="p-12 text-center text-slate-500 font-mono text-xs">
-                <RotateCw className="w-5 h-5 animate-spin mx-auto mb-2 text-indigo-400" />
+              <div className="p-12 text-center text-zinc-500 font-mono text-xs">
+                <RotateCw className="w-5 h-5 animate-spin mx-auto mb-2 text-emerald-400" />
                 <span>Loading procurement records from ledger...</span>
               </div>
             ) : buyerOrders.length === 0 ? (
-              <div className="p-12 rounded-xl bg-[#131722] border border-dashed border-white/10 text-center font-mono space-y-2">
-                <History className="w-8 h-8 text-slate-600 mx-auto" />
-                <p className="text-sm text-slate-300 font-bold">No Procurement Records Found</p>
-                <p className="text-xs text-slate-500 max-w-md mx-auto">
+              <div className="p-12 rounded-lg bg-zinc-900 border border-dashed border-white/[0.08] text-center font-mono space-y-2">
+                <History className="w-8 h-8 text-zinc-600 mx-auto" />
+                <p className="text-sm text-zinc-300 font-bold">No Procurement Records Found</p>
+                <p className="text-xs text-zinc-500 max-w-md mx-auto">
                   Run an autonomous procurement negotiation using the Interactive Terminal Simulator or external CLI script to generate verifiable ledger entries.
                 </p>
                 <button
@@ -1398,25 +1400,25 @@ const getBuyerDialogue = (persona, round, qty, bid) => {
                 {buyerOrders.map(order => (
                   <div
                     key={order.session_id}
-                    className="p-4 rounded-xl bg-[#131722] border border-white/10 hover:border-white/20 transition-all font-mono shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4"
+                    className="p-4 rounded-lg bg-zinc-900 border border-white/[0.06] hover:border-white/[0.12] transition-all font-mono shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4"
                   >
                     <div className="space-y-1.5 flex-1 min-w-0">
                       {/* Top Badges & IDs */}
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-xs font-bold text-white font-sans">
+                        <span className="text-xs font-bold text-zinc-100 font-sans">
                           {order.product_name || order.product_id}
                         </span>
                         {order.invoice_number && (
-                          <span className="text-[10px] text-slate-400 font-mono">
+                          <span className="text-[10px] text-zinc-500 font-mono">
                             {order.invoice_number}
                           </span>
                         )}
-                        <span className="text-[9px] px-2 py-0.5 rounded bg-white/5 text-slate-300 border border-white/10">
+                        <span className="text-[9px] px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-white/[0.06]">
                           {order.buyer_agent_name}
                         </span>
                         <span className={`text-[9px] px-2 py-0.5 rounded font-bold ${
                           order.status === 'blocked_by_firewall'
-                            ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                            ? 'bg-red-500/20 text-red-300 border border-red-500/30'
                             : order.payment_status === 'paid'
                             ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
                             : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
@@ -1429,10 +1431,10 @@ const getBuyerDialogue = (persona, round, qty, bid) => {
                         </span>
                       </div>
 
-                      {/* Financials & Savings Alpha */}
-                      <div className="flex items-center gap-3 text-xs text-slate-300 flex-wrap">
+                      {/* Financials & Savings */}
+                      <div className="flex items-center gap-3 text-xs text-zinc-300 flex-wrap">
                         {order.status === 'blocked_by_firewall' ? (
-                          <span className="text-rose-300 text-[11px] font-mono">
+                          <span className="text-red-300 text-[11px] font-mono">
                             Requested: {order.quantity} units • Transaction halted below supplier floor (₹{order.floor_price_snapshot || 950})
                           </span>
                         ) : (
@@ -1440,15 +1442,15 @@ const getBuyerDialogue = (persona, round, qty, bid) => {
                             <span>
                               {order.quantity} units × ₹{order.final_price_inr || order.list_price_inr}
                             </span>
-                            <span className="text-slate-600">•</span>
+                            <span className="text-zinc-600">•</span>
                             <span>
-                              Total: <strong className="text-white">₹{order.total_inr.toLocaleString()}</strong> (inc. 18% GST)
+                              Total: <strong className="text-zinc-100">₹{order.total_inr.toLocaleString()}</strong> (inc. 18% GST)
                             </span>
                             {order.savings_inr > 0 && (
                               <>
-                                <span className="text-slate-600">•</span>
+                                <span className="text-zinc-600">•</span>
                                 <span className="text-emerald-400 text-[11px] font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
-                                  🎉 Saved ₹{order.savings_inr.toLocaleString()} ({order.savings_pct}% below List)
+                                  Saved ₹{order.savings_inr.toLocaleString()} ({order.savings_pct}% below List)
                                 </span>
                               </>
                             )}
@@ -1457,7 +1459,7 @@ const getBuyerDialogue = (persona, round, qty, bid) => {
                       </div>
 
                       {/* Transaction Meta */}
-                      <div className="text-[10px] text-slate-500 flex items-center gap-3 flex-wrap">
+                      <div className="text-[10px] text-zinc-500 flex items-center gap-3 flex-wrap">
                         <span>Ref: {order.session_id}</span>
                         {order.razorpay_payment_id && (
                           <>
@@ -1473,15 +1475,15 @@ const getBuyerDialogue = (persona, round, qty, bid) => {
                     {/* Action Buttons */}
                     <div className="flex items-center gap-2 shrink-0 flex-wrap">
                       {order.status === 'blocked_by_firewall' ? (
-                        <span className="text-[11px] font-bold text-rose-400 bg-rose-500/10 px-2.5 py-1 rounded border border-rose-500/20 flex items-center gap-1.5 font-mono">
-                          <ShieldAlert className="w-3.5 h-3.5 text-rose-400" />
+                        <span className="text-[11px] font-bold text-red-400 bg-red-500/10 px-2.5 py-1 rounded border border-red-500/20 flex items-center gap-1.5 font-mono">
+                          <ShieldAlert className="w-3.5 h-3.5 text-red-400" />
                           <span>Margin Protected (No Invoice)</span>
                         </span>
                       ) : (
                         <>
                           <button
                             onClick={() => handleOpenLedgerDoc(order, 'invoice')}
-                            className="btn btn-secondary py-1.5 px-3 text-xs flex items-center gap-1.5 text-indigo-300 border-indigo-500/30 hover:bg-indigo-500/10 cursor-pointer"
+                            className="btn btn-secondary py-1.5 px-3 text-xs flex items-center gap-1.5 text-zinc-300 border-white/[0.08] hover:bg-white/5 cursor-pointer"
                             title="View Commercial Tax Invoice"
                           >
                             <FileText className="w-3.5 h-3.5" />
@@ -1493,7 +1495,7 @@ const getBuyerDialogue = (persona, round, qty, bid) => {
                             className={`btn btn-secondary py-1.5 px-3 text-xs flex items-center gap-1.5 cursor-pointer ${
                               order.payment_status === 'paid'
                                 ? 'text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/10'
-                                : 'text-slate-500 border-white/5 opacity-50'
+                                : 'text-zinc-600 border-white/5 opacity-50'
                             }`}
                             title={order.payment_status === 'paid' ? 'View Payment Receipt' : 'Receipt available once settled'}
                           >
@@ -1505,7 +1507,7 @@ const getBuyerDialogue = (persona, round, qty, bid) => {
                             <>
                               <button
                                 onClick={() => handleOpenLedgerDoc(order, 'invoice')}
-                                className="btn btn-primary py-1.5 px-3 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-md"
+                                className="btn btn-primary py-1.5 px-3 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
                               >
                                 <CreditCard className="w-3.5 h-3.5" />
                                 <span>Pay with Razorpay</span>
@@ -1548,27 +1550,26 @@ const getBuyerDialogue = (persona, round, qty, bid) => {
         {/* TAB 4: API SPECIFICATIONS */}
         {activeTab === 'docs' && (
           <div className="space-y-6">
-            <div className="p-4 rounded-xl bg-[#131620] border border-white/10">
-              <h2 className="text-base font-bold text-white">Public A2A Gateway Endpoints</h2>
-              <p className="text-xs text-slate-400 mt-1">
+            <div className="p-4 rounded-lg bg-zinc-900 border border-white/[0.06]">
+              <h2 className="text-base font-bold text-zinc-100">Public A2A Gateway Endpoints</h2>
+              <p className="text-xs text-zinc-500 mt-1">
                 Any external autonomous agent, script, or server can interact with Parlay using standard HTTP JSON APIs.
               </p>
             </div>
 
-
             {/* Endpoint 0: Catalog */}
-            <div className="p-4 rounded-xl bg-[#131722] border border-white/10 space-y-3">
+            <div className="p-4 rounded-lg bg-zinc-900 border border-white/[0.06] space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-mono px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-bold border border-indigo-500/30">
+                  <span className="text-xs font-mono px-2 py-0.5 rounded bg-zinc-800 text-zinc-200 font-bold border border-white/[0.06]">
                     GET
                   </span>
-                  <span className="text-xs font-mono font-bold text-white">/api/agent/catalog</span>
-                  <span className="text-xs text-slate-400">— Machine-Readable Catalog Discovery</span>
+                  <span className="text-xs font-mono font-bold text-zinc-100">/api/agent/catalog</span>
+                  <span className="text-xs text-zinc-500">- Machine-Readable Catalog Discovery</span>
                 </div>
                 <button
                   onClick={() => copyToClipboard('curl http://localhost:5000/api/agent/catalog', 'cat')}
-                  className="text-xs text-slate-400 hover:text-white flex items-center gap-1 font-mono cursor-pointer"
+                  className="text-xs text-zinc-400 hover:text-white flex items-center gap-1 font-mono cursor-pointer"
                 >
                   {copiedIndex === 'cat' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                   <span>Copy cURL</span>
@@ -1576,31 +1577,31 @@ const getBuyerDialogue = (persona, round, qty, bid) => {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-[11px] font-mono">
-                <div className="p-2.5 rounded bg-black/40 border border-white/5 space-y-1">
-                  <span className="text-slate-400 font-bold block mb-1 uppercase tracking-wider text-[9px]">Query Parameters</span>
-                  <p className="text-slate-500 italic">None required. Returns active inventory with real-time stock and volume discount ladders.</p>
+                <div className="p-2.5 rounded bg-zinc-950 border border-white/[0.04] space-y-1">
+                  <span className="text-zinc-500 font-bold block mb-1 uppercase tracking-wider text-[9px]">Query Parameters</span>
+                  <p className="text-zinc-500 italic">None required. Returns active inventory with real-time stock and volume discount ladders.</p>
                 </div>
-                <div className="p-2.5 rounded bg-black/40 border border-white/5 space-y-1">
+                <div className="p-2.5 rounded bg-zinc-950 border border-white/[0.04] space-y-1">
                   <span className="text-emerald-400 font-bold block mb-1 uppercase tracking-wider text-[9px]">Response Format (200 OK)</span>
-                  <p><span className="text-white">items[]:</span> array of products (sku, name, list_price_inr, ready_stock, volume_discount_tiers)</p>
-                  <p><span className="text-white">gateway_endpoints:</span> map of public A2A URLs (rfq, negotiate, settle)</p>
+                  <p><span className="text-zinc-200">items[]:</span> array of products (sku, name, list_price_inr, ready_stock, volume_discount_tiers)</p>
+                  <p><span className="text-zinc-200">gateway_endpoints:</span> map of public A2A URLs (rfq, negotiate, settle)</p>
                 </div>
               </div>
             </div>
 
             {/* Endpoint 1: RFQ */}
-            <div className="p-4 rounded-xl bg-[#131722] border border-white/10 space-y-3">
+            <div className="p-4 rounded-lg bg-zinc-900 border border-white/[0.06] space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">
+                  <span className="text-xs font-mono px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-300 font-bold border border-emerald-500/25">
                     POST
                   </span>
-                  <span className="text-xs font-mono font-bold text-white">/api/agent/rfq</span>
-                  <span className="text-xs text-slate-400">— Submit Request For Quote</span>
+                  <span className="text-xs font-mono font-bold text-zinc-100">/api/agent/rfq</span>
+                  <span className="text-xs text-zinc-500">- Submit Request For Quote</span>
                 </div>
                 <button
                   onClick={() => copyToClipboard(curlExampleRfq, 'rfq')}
-                  className="text-xs text-slate-400 hover:text-white flex items-center gap-1 font-mono cursor-pointer"
+                  className="text-xs text-zinc-400 hover:text-white flex items-center gap-1 font-mono cursor-pointer"
                 >
                   {copiedIndex === 'rfq' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                   <span>Copy cURL</span>
@@ -1608,39 +1609,39 @@ const getBuyerDialogue = (persona, round, qty, bid) => {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-[11px] font-mono">
-                <div className="p-2.5 rounded bg-black/40 border border-white/5 space-y-1">
-                  <span className="text-slate-400 font-bold block mb-1 uppercase tracking-wider text-[9px]">Request Body Fields</span>
-                  <p><span className="text-sky-300">product_id</span> (string, req): Target SKU (e.g. SKU-LED-1001)</p>
-                  <p><span className="text-sky-300">quantity</span> (number, req): Number of units requested</p>
-                  <p><span className="text-sky-300">buyer_agent_name</span> (string, opt): Identification string</p>
-                  <p><span className="text-sky-300">buyer_persona</span> (string, opt): reasonable | lowballer | floor_tester</p>
+                <div className="p-2.5 rounded bg-zinc-950 border border-white/[0.04] space-y-1">
+                  <span className="text-zinc-500 font-bold block mb-1 uppercase tracking-wider text-[9px]">Request Body Fields</span>
+                  <p><span className="text-zinc-300">product_id</span> (string, req): Target SKU (e.g. SKU-LED-1001)</p>
+                  <p><span className="text-zinc-300">quantity</span> (number, req): Number of units requested</p>
+                  <p><span className="text-zinc-300">buyer_agent_name</span> (string, opt): Identification string</p>
+                  <p><span className="text-zinc-300">buyer_persona</span> (string, opt): reasonable | lowballer | floor_tester</p>
                 </div>
-                <div className="p-2.5 rounded bg-black/40 border border-white/5 space-y-1">
+                <div className="p-2.5 rounded bg-zinc-950 border border-white/[0.04] space-y-1">
                   <span className="text-emerald-400 font-bold block mb-1 uppercase tracking-wider text-[9px]">Response Fields (201 Created)</span>
-                  <p><span className="text-white">session_id:</span> Unique session identifier for subsequent turns</p>
-                  <p><span className="text-white">merchant_opening_turn:</span> {`{ message, proposed_price_inr, policy_reason }`}</p>
-                  <p><span className="text-white">max_rounds:</span> 8 (Maximum permitted bargaining turns)</p>
+                  <p><span className="text-zinc-200">session_id:</span> Unique session identifier for subsequent turns</p>
+                  <p><span className="text-zinc-200">merchant_opening_turn:</span> {`{ message, proposed_price_inr, policy_reason }`}</p>
+                  <p><span className="text-zinc-200">max_rounds:</span> 8 (Maximum permitted bargaining turns)</p>
                 </div>
               </div>
 
-              <pre className="p-3 rounded-lg bg-black/60 border border-white/5 text-[11px] font-mono text-slate-300 overflow-x-auto">
+              <pre className="p-3 rounded bg-zinc-950 border border-white/[0.04] text-[11px] font-mono text-zinc-300 overflow-x-auto">
                 {curlExampleRfq}
               </pre>
             </div>
 
             {/* Endpoint 2: Negotiate */}
-            <div className="p-4 rounded-xl bg-[#131722] border border-white/10 space-y-3">
+            <div className="p-4 rounded-lg bg-zinc-900 border border-white/[0.06] space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-mono px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 font-bold border border-sky-500/30">
+                  <span className="text-xs font-mono px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-300 font-bold border border-emerald-500/25">
                     POST
                   </span>
-                  <span className="text-xs font-mono font-bold text-white">/api/agent/negotiate</span>
-                  <span className="text-xs text-slate-400">— Submit Counter-Bid (Protected by Deterministic Firewall)</span>
+                  <span className="text-xs font-mono font-bold text-zinc-100">/api/agent/negotiate</span>
+                  <span className="text-xs text-zinc-500">- Submit Counter-Bid (Firewall Protected)</span>
                 </div>
                 <button
                   onClick={() => copyToClipboard(curlExampleNegotiate, 'neg')}
-                  className="text-xs text-slate-400 hover:text-white flex items-center gap-1 font-mono cursor-pointer"
+                  className="text-xs text-zinc-400 hover:text-white flex items-center gap-1 font-mono cursor-pointer"
                 >
                   {copiedIndex === 'neg' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                   <span>Copy cURL</span>
@@ -1648,38 +1649,38 @@ const getBuyerDialogue = (persona, round, qty, bid) => {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-[11px] font-mono">
-                <div className="p-2.5 rounded bg-black/40 border border-white/5 space-y-1">
-                  <span className="text-slate-400 font-bold block mb-1 uppercase tracking-wider text-[9px]">Request Body Fields</span>
-                  <p><span className="text-sky-300">session_id</span> (string, req): Session ID returned from RFQ</p>
-                  <p><span className="text-sky-300">offered_price</span> (number, req): Unit price in INR offered</p>
-                  <p><span className="text-sky-300">message</span> (string, req): Conversational rationale</p>
-                  <p><span className="text-sky-300">action</span> (string, req): 'continue' | 'deal_closed' | 'no_deal'</p>
+                <div className="p-2.5 rounded bg-zinc-950 border border-white/[0.04] space-y-1">
+                  <span className="text-zinc-500 font-bold block mb-1 uppercase tracking-wider text-[9px]">Request Body Fields</span>
+                  <p><span className="text-zinc-300">session_id</span> (string, req): Session ID returned from RFQ</p>
+                  <p><span className="text-zinc-300">offered_price</span> (number, req): Unit price in INR offered</p>
+                  <p><span className="text-zinc-300">message</span> (string, req): Conversational rationale</p>
+                  <p><span className="text-zinc-300">action</span> (string, req): 'continue' | 'deal_closed' | 'no_deal'</p>
                 </div>
-                <div className="p-2.5 rounded bg-black/40 border border-white/5 space-y-1">
+                <div className="p-2.5 rounded bg-zinc-950 border border-white/[0.04] space-y-1">
                   <span className="text-emerald-400 font-bold block mb-1 uppercase tracking-wider text-[9px]">Firewall & Responses</span>
-                  <p><span className="text-white">200 OK:</span> {`{ status: "ongoing", firewall_status: "PASS", merchant_response: { message, proposed_price_inr, action } }`}</p>
-                  <p><span className="text-rose-400">422 Unprocessable Entity:</span> FIREWALL_SECURITY_QUARANTINE (Bid strictly below floor boundary)</p>
+                  <p><span className="text-zinc-200">200 OK:</span> {`{ status: "ongoing", firewall_status: "PASS", merchant_response: { message, proposed_price_inr, action } }`}</p>
+                  <p><span className="text-red-400">422 Unprocessable Entity:</span> FIREWALL_SECURITY_QUARANTINE (Bid strictly below floor boundary)</p>
                 </div>
               </div>
 
-              <pre className="p-3 rounded-lg bg-black/60 border border-white/5 text-[11px] font-mono text-slate-300 overflow-x-auto">
+              <pre className="p-3 rounded bg-zinc-950 border border-white/[0.04] text-[11px] font-mono text-zinc-300 overflow-x-auto">
                 {curlExampleNegotiate}
               </pre>
             </div>
 
             {/* Endpoint 3: Settle */}
-            <div className="p-4 rounded-xl bg-[#131722] border border-white/10 space-y-3">
+            <div className="p-4 rounded-lg bg-zinc-900 border border-white/[0.06] space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-mono px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 font-bold border border-purple-500/30">
+                  <span className="text-xs font-mono px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-300 font-bold border border-emerald-500/25">
                     POST
                   </span>
-                  <span className="text-xs font-mono font-bold text-white">/api/agent/settle</span>
-                  <span className="text-xs text-slate-400">— Autonomous Bounded Settlement (Razorpay Order)</span>
+                  <span className="text-xs font-mono font-bold text-zinc-100">/api/agent/settle</span>
+                  <span className="text-xs text-zinc-500">- Autonomous Bounded Settlement (Razorpay Order)</span>
                 </div>
                 <button
                   onClick={() => copyToClipboard(curlExampleSettle, 'set')}
-                  className="text-xs text-slate-400 hover:text-white flex items-center gap-1 font-mono cursor-pointer"
+                  className="text-xs text-zinc-400 hover:text-white flex items-center gap-1 font-mono cursor-pointer"
                 >
                   {copiedIndex === 'set' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                   <span>Copy cURL</span>
@@ -1687,35 +1688,35 @@ const getBuyerDialogue = (persona, round, qty, bid) => {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-[11px] font-mono">
-                <div className="p-2.5 rounded bg-black/40 border border-white/5 space-y-1">
-                  <span className="text-slate-400 font-bold block mb-1 uppercase tracking-wider text-[9px]">Request Body Fields</span>
-                  <p><span className="text-sky-300">session_id</span> (string, req): Settled negotiation session ID</p>
-                  <p><span className="text-sky-300">max_authorized_budget</span> (number, opt): Hard budget ceiling</p>
+                <div className="p-2.5 rounded bg-zinc-950 border border-white/[0.04] space-y-1">
+                  <span className="text-zinc-500 font-bold block mb-1 uppercase tracking-wider text-[9px]">Request Body Fields</span>
+                  <p><span className="text-zinc-300">session_id</span> (string, req): Settled negotiation session ID</p>
+                  <p><span className="text-zinc-300">max_authorized_budget</span> (number, opt): Hard budget ceiling</p>
                 </div>
-                <div className="p-2.5 rounded bg-black/40 border border-white/5 space-y-1">
+                <div className="p-2.5 rounded bg-zinc-950 border border-white/[0.04] space-y-1">
                   <span className="text-emerald-400 font-bold block mb-1 uppercase tracking-wider text-[9px]">Settlement Output</span>
-                  <p><span className="text-white">razorpay_order_id:</span> Real Razorpay financial order</p>
-                  <p><span className="text-white">transaction_id:</span> M2M Pre-Authorized Mandate ID</p>
-                  <p><span className="text-white">stock_allocated:</span> true (Atomic inventory deduction)</p>
-                  <p><span className="text-white">receipt_audit:</span> HMAC-SHA256 verified tax invoice message</p>
+                  <p><span className="text-zinc-200">razorpay_order_id:</span> Real Razorpay financial order</p>
+                  <p><span className="text-zinc-200">transaction_id:</span> M2M Pre-Authorized Mandate ID</p>
+                  <p><span className="text-zinc-200">stock_allocated:</span> true (Atomic inventory deduction)</p>
+                  <p><span className="text-zinc-200">receipt_audit:</span> HMAC-SHA256 verified tax invoice message</p>
                 </div>
               </div>
 
-              <pre className="p-3 rounded-lg bg-black/60 border border-white/5 text-[11px] font-mono text-slate-300 overflow-x-auto">
+              <pre className="p-3 rounded bg-zinc-950 border border-white/[0.04] text-[11px] font-mono text-zinc-300 overflow-x-auto">
                 {curlExampleSettle}
               </pre>
             </div>
           </div>
         )}
 
-        {/* TAB 4: MCP TOOL SPEC */}
+        {/* TAB 5: MCP TOOL SPEC */}
         {activeTab === 'mcp' && (
           <div className="space-y-4">
-            <div className="p-4 rounded-xl bg-[#131620] border border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="p-4 rounded-lg bg-zinc-900 border border-white/[0.06] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
-                <h2 className="text-base font-bold text-white">Model Context Protocol (MCP) Tool Declaration</h2>
-                <p className="text-xs text-slate-400 mt-1">
-                  Standard tool definition schema allowing external LLMs (Anthropic Claude Desktop, Cursor, OpenAI Agents) to discover inventory and negotiate with Parlay.
+                <h2 className="text-base font-bold text-zinc-100">Model Context Protocol (MCP) Tool Declaration</h2>
+                <p className="text-xs text-zinc-500 mt-1">
+                  Standard tool definition schema allowing external LLMs (Claude Desktop, Cursor, OpenAI Agents) to discover inventory and negotiate with Parlay.
                 </p>
               </div>
               <button
@@ -1733,14 +1734,14 @@ const getBuyerDialogue = (persona, round, qty, bid) => {
                     required: ["sku", "quantity", "max_authorized_budget_inr"]
                   }
                 }, null, 2), 'mcp')}
-                className="btn btn-secondary text-xs py-2 px-3.5 flex items-center gap-1.5 text-indigo-300 border-indigo-500/30 hover:bg-indigo-500/10 cursor-pointer shrink-0 self-start sm:self-auto"
+                className="btn btn-secondary text-xs py-2 px-3.5 flex items-center gap-1.5 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/10 cursor-pointer shrink-0 self-start sm:self-auto"
               >
                 {copiedIndex === 'mcp' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                 <span>Copy MCP JSON</span>
               </button>
             </div>
 
-            <pre className="p-4 rounded-xl bg-black border border-white/10 text-xs font-mono text-emerald-300 overflow-x-auto leading-relaxed">
+            <pre className="p-4 rounded-lg bg-black border border-white/[0.06] text-xs font-mono text-emerald-400 overflow-x-auto leading-relaxed">
 {JSON.stringify({
   name: "parlay_negotiate_and_procure",
   description: "Discovers B2B merchant inventory, submits volume RFQ, negotiates bounded commercial terms with Parlay deterministic firewall, and executes Razorpay autonomous settlement.",

@@ -333,7 +333,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="h-screen w-screen overflow-hidden flex flex-col bg-[#f8fafc]">
+    <div className="h-screen w-screen overflow-hidden flex flex-col bg-[#09090b]">
       {/* Top Navbar */}
       <Navbar onOpenFloorModal={() => setIsFloorModalOpen(true)} />
 
