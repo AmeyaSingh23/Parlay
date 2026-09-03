@@ -5,6 +5,7 @@ const NegotiationMessage = require('../models/NegotiationMessage');
 const { firewallCheck } = require('../firewall/firewallCheck');
 const { generateMerchantTurn } = require('../agents/merchantAgent');
 const { settlePayment } = require('./razorpayController');
+const customerMemoryService = require('../services/customerMemoryService');
 
 /**
  * GET /api/agent/catalog
@@ -93,6 +94,8 @@ const createAgentRfq = async (req, res) => {
     if (persona === 'lowballer') persona = 'aggressive_lowballer';
     if (persona === 'impatient') persona = 'impatient_enterprise';
 
+    const customerProfile = await customerMemoryService.getOrCreateCustomerProfile(persona);
+
     const session = await NegotiationSession.create({
       session_id: sessionId,
       product_id: product.product_id,
@@ -103,19 +106,11 @@ const createAgentRfq = async (req, res) => {
       list_price_snapshot: product.list_price,
       target_price_snapshot: product.target_price,
       floor_price_snapshot: product.floor_price,
+      customer_profile_id: customerProfile._id,
+      trust_score_snapshot: customerProfile.trust_score,
+      loyalty_tier_snapshot: customerProfile.loyalty_tier,
       rounds_count: 1
     });
-
-    const io = req.app.get('io');
-    if (io) {
-      io.emit('negotiation:external_rfq', {
-        session_id: sessionId,
-        buyer_agent_name: buyer_agent_name || 'External AI Agent',
-        product_name: product.name,
-        quantity: Number(quantity),
-        list_price: product.list_price
-      });
-    }
 
     // 1. Initial RFQ dispatch from Buyer Agent
     const buyerRfqMsg = await NegotiationMessage.create({
@@ -123,29 +118,46 @@ const createAgentRfq = async (req, res) => {
       sender: 'buyer',
       message: `Submitting formal RFQ for ${quantity} ${product.unit || 'units'} of "${product.name}". Requesting best volume wholesale pricing and fulfillment schedule.`,
       proposed_price: null,
-      policy_reason: `Initial RFQ dispatch by ${buyer_agent_name || 'Buyer Agent'} (${persona})`,
+      policy_reason: `Initial RFQ dispatch by ${buyer_agent_name || customerProfile.company_name} (${persona})`,
       firewall_result: 'pass',
       round: 1
     });
 
-    if (io) {
-      io.to(sessionId).emit('negotiation:turn', buyerRfqMsg);
-      io.emit('negotiation:global_update', { sessionId, event: 'negotiation:turn', data: buyerRfqMsg });
+    // 2. Opening greeting and quote from Parlay Merchant Agent (informed by Customer Memory)
+    const openingPrice = Math.max(product.target_price, Math.round(product.list_price * 0.95));
+    let openingGreeting = `Welcome ${buyer_agent_name || customerProfile.company_name}. We have received your RFQ for ${quantity} ${product.unit || 'units'} of "${product.name}". Our catalog list price is ₹${product.list_price}/unit, but for this wholesale volume, we can open at ₹${openingPrice}/unit with priority warehouse dispatch.`;
+
+    if (customerProfile.loyalty_tier === 'VIP_PARTNER') {
+      openingGreeting = `Welcome back, ${customerProfile.company_name}! In recognition of our ongoing volume partnership (LTV: ₹${customerProfile.lifetime_spend_inr.toLocaleString()}), our pricing engine has unlocked our Preferred VIP Tier. While catalog list price is ₹${product.list_price}/unit, we open our preferred counter at ₹${openingPrice}/unit with priority warehouse dispatch.`;
+    } else if (customerProfile.loyalty_tier === 'CHRONIC_LOWBALLER') {
+      openingGreeting = `Welcome ${customerProfile.company_name}. We have received your RFQ for ${quantity} units. Based on your account profile (Trust Score: ${customerProfile.trust_score}/100), our pricing is strictly anchored at ₹${product.list_price}/unit with standard enterprise dispatch terms.`;
     }
 
-    // 2. Opening greeting and quote from Parlay Merchant Agent
-    const openingPrice = Math.max(product.target_price, Math.round(product.list_price * 0.95));
     const openingMsg = await NegotiationMessage.create({
       session_id: sessionId,
       sender: 'merchant',
-      message: `Welcome ${buyer_agent_name || 'Procurement Agent'}. We have received your RFQ for ${quantity} ${product.unit || 'units'} of "${product.name}". Our catalog list price is ₹${product.list_price}/unit, but for this wholesale volume, we can open at ₹${openingPrice}/unit with priority warehouse dispatch.`,
+      message: openingGreeting,
       proposed_price: openingPrice,
       policy_reason: 'Opening wholesale quote anchored near target margin',
       firewall_result: 'pass',
       round: 1
     });
 
+    const io = req.app.get('io');
     if (io) {
+      io.emit('negotiation:external_rfq', {
+        session_id: sessionId,
+        buyer_agent_name: buyer_agent_name || customerProfile.company_name,
+        product_name: product.name,
+        quantity: Number(quantity),
+        list_price: product.list_price,
+        customerProfile,
+        initialMessages: [buyerRfqMsg, openingMsg]
+      });
+
+      io.to(sessionId).emit('negotiation:turn', buyerRfqMsg);
+      io.emit('negotiation:global_update', { sessionId, event: 'negotiation:turn', data: buyerRfqMsg });
+
       io.to(sessionId).emit('negotiation:turn', openingMsg);
       io.emit('negotiation:global_update', { sessionId, event: 'negotiation:turn', data: openingMsg });
     }
@@ -158,6 +170,16 @@ const createAgentRfq = async (req, res) => {
       quantity: Number(quantity),
       current_round: 1,
       max_rounds: 8,
+      customer_profile: {
+        company_name: customerProfile.company_name,
+        loyalty_tier: customerProfile.loyalty_tier,
+        trust_score: customerProfile.trust_score,
+        lifetime_spend_inr: customerProfile.lifetime_spend_inr,
+        deals_closed: customerProfile.deals_closed_count,
+        lowball_strikes: customerProfile.lowball_strikes,
+        elasticity_bonus_pct: customerProfile.discount_elasticity_bonus,
+        last_deal_summary: customerProfile.last_deal_summary
+      },
       merchant_opening_turn: {
         message: openingMsg.message,
         proposed_price_inr: openingMsg.proposed_price,
@@ -268,6 +290,11 @@ const handleAgentNegotiate = async (req, res) => {
         session.closed_at = new Date();
         await session.save();
 
+        if (io) {
+          io.to(session_id).emit('negotiation:status', { session });
+          io.emit('negotiation:global_update', { sessionId: session_id, event: 'negotiation:status', data: { session } });
+        }
+
         return res.status(422).json({
           status: 'blocked_by_firewall',
           error: 'FIREWALL_SECURITY_QUARANTINE',
@@ -285,6 +312,12 @@ const handleAgentNegotiate = async (req, res) => {
       if (fwVal.result === 'blocked') {
         session.status = 'blocked_by_firewall';
         await session.save();
+
+        if (io) {
+          io.to(session_id).emit('negotiation:status', { session });
+          io.emit('negotiation:global_update', { sessionId: session_id, event: 'negotiation:status', data: { session } });
+        }
+
         return res.status(422).json({
           status: 'blocked_by_firewall',
           message: 'Cannot close deal below merchant floor price.'
@@ -312,14 +345,22 @@ const handleAgentNegotiate = async (req, res) => {
       session.status = 'no_deal';
       session.closed_at = new Date();
       await session.save();
+
+      if (io) {
+        io.to(session_id).emit('negotiation:status', { session });
+        io.emit('negotiation:global_update', { sessionId: session_id, event: 'negotiation:status', data: { session } });
+      }
+
       return res.json({
         status: 'no_deal',
         message: 'External agent ended the negotiation without mutual agreement.'
       });
     }
 
-    // 3. GENERATE PARLAY MERCHANT COUNTER-OFFER
+    // 3. GENERATE PARLAY MERCHANT COUNTER-OFFER (WITH CUSTOMER MEMORY)
     const history = await NegotiationMessage.find({ session_id }).sort({ timestamp: 1 }).lean();
+    const customerProfile = await customerMemoryService.getOrCreateCustomerProfile(session.buyer_persona);
+
     let merchantTurn;
     try {
       merchantTurn = await generateMerchantTurn({
@@ -331,7 +372,8 @@ const handleAgentNegotiate = async (req, res) => {
           blockedPrice: numericOffer,
           reason: `Buyer bid ₹${numericOffer} was blocked by commercial firewall (Floor: ₹${buyerFwCheck.live_floor}). Counter firmly at or above floor.`,
           liveFloor: buyerFwCheck.live_floor
-        } : null
+        } : null,
+        customerProfile
       });
     } catch (llmErr) {
       merchantTurn = {
@@ -363,6 +405,12 @@ const handleAgentNegotiate = async (req, res) => {
       current_round: session.rounds_count,
       max_rounds: 8,
       firewall_status: isFirewallBlocked ? 'INTERCEPTED_AND_WARNED' : 'PASS',
+      customer_profile: {
+        company_name: customerProfile.company_name,
+        loyalty_tier: customerProfile.loyalty_tier,
+        trust_score: customerProfile.trust_score,
+        lifetime_spend_inr: customerProfile.lifetime_spend_inr
+      },
       merchant_response: {
         message: merchantTurn.message,
         proposed_price_inr: merchantTurn.proposed_price,
@@ -462,15 +510,18 @@ const getAgentOrders = async (req, res) => {
     }
     if (status && status !== 'all') {
       if (status === 'paid') {
+        query.status = 'deal_closed';
         query.payment_status = 'paid';
       } else if (status === 'pending') {
         query.status = 'deal_closed';
         query.payment_status = { $ne: 'paid' };
       } else if (status === 'quarantined') {
-        query.status = 'quarantined';
+        query.status = 'blocked_by_firewall';
       } else if (status === 'deal_closed') {
         query.status = 'deal_closed';
       }
+    } else {
+      query.status = { $in: ['deal_closed', 'blocked_by_firewall'] };
     }
 
     const sessions = await NegotiationSession.find(query)
@@ -479,36 +530,38 @@ const getAgentOrders = async (req, res) => {
       .lean();
 
     const orders = sessions.map(s => {
-      const listPrice = s.list_price_snapshot || s.final_price || 0;
-      const unitPrice = s.final_price || listPrice;
+      const isClosed = s.status === 'deal_closed';
+      const listPrice = s.list_price_snapshot || 0;
+      const unitPrice = isClosed ? (s.final_price || listPrice) : 0;
       const qty = s.quantity || 1;
       const subtotal = Math.round(unitPrice * qty);
       const totalWithGst = Math.round(subtotal * 1.18);
       const listTotal = Math.round(listPrice * qty);
-      const savingsInr = Math.max(0, listTotal - subtotal);
-      const savingsPct = listTotal > 0 ? Number(((savingsInr / listTotal) * 100).toFixed(1)) : 0;
+      const savingsInr = isClosed ? Math.max(0, listTotal - subtotal) : 0;
+      const savingsPct = (isClosed && listTotal > 0) ? Number(((savingsInr / listTotal) * 100).toFixed(1)) : 0;
 
       return {
         session_id: s.session_id,
-        invoice_number: `INV-PAR-${s.session_id.substring(4, 12).toUpperCase()}`,
-        receipt_number: `RCPT-PAR-${s.session_id.substring(4, 12).toUpperCase()}`,
+        invoice_number: isClosed ? `INV-PAR-${s.session_id.substring(4, 12).toUpperCase()}` : null,
+        receipt_number: (isClosed && s.payment_status === 'paid') ? `RCPT-PAR-${s.session_id.substring(4, 12).toUpperCase()}` : null,
         product_id: s.product_id,
         product_name: s.product_name,
         quantity: qty,
         list_price_inr: listPrice,
         final_price_inr: s.final_price,
+        floor_price_snapshot: s.floor_price_snapshot,
         savings_inr: savingsInr,
         savings_pct: savingsPct,
         subtotal_inr: subtotal,
         gst_inr: totalWithGst - subtotal,
         total_inr: totalWithGst,
         status: s.status,
-        payment_status: s.payment_status || 'unpaid',
+        payment_status: isClosed ? (s.payment_status || 'unpaid') : 'n/a',
         razorpay_payment_id: s.razorpay_payment_id,
         razorpay_order_id: s.razorpay_order_id,
         buyer_persona: s.buyer_persona,
         buyer_agent_name: s.buyer_agent_name || `${s.buyer_persona} Agent`,
-        rounds_completed: s.round || 0,
+        rounds_completed: s.rounds_count || 0,
         quarantine_reason: s.quarantine_reason,
         created_at: s.createdAt,
         updated_at: s.updatedAt,
@@ -538,10 +591,29 @@ const getAgentOrders = async (req, res) => {
   }
 };
 
+/**
+ * GET /api/agent/profiles
+ * Returns all recognized B2B customer profiles with reputation metrics.
+ */
+const getCustomerProfiles = async (req, res) => {
+  try {
+    const profiles = await customerMemoryService.getAllCustomerProfiles();
+    res.json({
+      success: true,
+      count: profiles.length,
+      profiles
+    });
+  } catch (err) {
+    console.error('[AgentGateway] getCustomerProfiles error:', err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
 module.exports = {
   getAgentCatalog,
   createAgentRfq,
   handleAgentNegotiate,
   handleAgentSettle,
-  getAgentOrders
+  getAgentOrders,
+  getCustomerProfiles
 };

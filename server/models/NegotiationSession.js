@@ -29,7 +29,10 @@ const negotiationSessionSchema = new mongoose.Schema({
   razorpay_payment_id: { type: String, default: null },
   razorpay_payment_link_id: { type: String, default: null },
   paid_at: { type: Date, default: null },
-  closed_at: { type: Date, default: null }
+  closed_at: { type: Date, default: null },
+  customer_profile_id: { type: mongoose.Schema.Types.ObjectId, ref: 'CustomerProfile', default: null },
+  trust_score_snapshot: { type: Number, default: 50 },
+  loyalty_tier_snapshot: { type: String, default: 'NEW_PROSPECT' }
 }, { timestamps: true });
 
 module.exports = mongoose.model('NegotiationSession', negotiationSessionSchema);

@@ -8,8 +8,60 @@ import {
   AlertCircle,
   FileText,
   User,
-  Store
+  Store,
+  Award,
+  Sparkles
 } from 'lucide-react';
+
+const COMPANY_MAP = {
+  reasonable: 'Apex Global Procurement',
+  aggressive_lowballer: 'Titan Bulk Liquidators',
+  lowballer: 'Titan Bulk Liquidators',
+  impatient_enterprise: 'Nexus FastTrack Logistics',
+  impatient: 'Nexus FastTrack Logistics',
+  floor_tester: 'Spectre Automated Arbitrage',
+  generous: 'Zenith Premium Capital'
+};
+
+const getCompanyName = (persona) => {
+  return COMPANY_MAP[persona] || 'Enterprise Client';
+};
+
+const getTierBadge = (tier, trust = 50) => {
+  const effectiveTier = tier || (
+    (trust >= 80) ? 'VIP_PARTNER' :
+    (trust >= 50) ? 'GROWTH_ACCOUNT' :
+    (trust >= 30) ? 'WATCHLIST' : 'CHRONIC_LOWBALLER'
+  );
+
+  switch (effectiveTier) {
+    case 'VIP_PARTNER':
+      return {
+        label: '🌟 VIP Partner (+4% Elasticity)',
+        className: 'bg-purple-500/15 text-purple-300 border border-purple-500/30'
+      };
+    case 'GROWTH_ACCOUNT':
+      return {
+        label: '📈 Growth Partner (+1.5% Elasticity)',
+        className: 'bg-sky-500/15 text-sky-300 border border-sky-500/30'
+      };
+    case 'WATCHLIST':
+      return {
+        label: '⚠️ Watchlist Account',
+        className: 'bg-amber-500/15 text-amber-300 border border-amber-500/30'
+      };
+    case 'CHRONIC_LOWBALLER':
+      return {
+        label: '🛡️ Lowballer Risk (0% Concession)',
+        className: 'bg-rose-500/15 text-rose-300 border border-rose-500/30'
+      };
+    default:
+      return {
+        label: '📈 Growth Partner (+1.5% Elasticity)',
+        className: 'bg-sky-500/15 text-sky-300 border border-sky-500/30'
+      };
+  }
+};
 
 export default function TranscriptPanel({
   session,
@@ -19,10 +71,12 @@ export default function TranscriptPanel({
   onRejectHitl,
   onOpenInvoice
 }) {
-  const bottomRef = useRef(null);
+  const chatContainerRef = useRef(null);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
   }, [messages, isNegotiating]);
 
   const getStatusBadge = (status) => {
@@ -74,8 +128,46 @@ export default function TranscriptPanel({
         )}
       </div>
 
+      {/* Customer Memory & Reputation Dossier Bar */}
+      {session && (
+        <div className="px-3.5 py-2 bg-[#12151e] border-b border-white/5 flex items-center justify-between gap-3 text-xs font-mono">
+          <div className="flex items-center gap-2 min-w-0">
+            <Award className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+            <span className="font-bold text-slate-200 truncate">
+              {getCompanyName(session.buyer_persona)}
+            </span>
+            <span className={`text-[9px] px-2 py-0.5 rounded font-bold shrink-0 ${getTierBadge(session.loyalty_tier_snapshot, session.trust_score_snapshot).className}`}>
+              {getTierBadge(session.loyalty_tier_snapshot, session.trust_score_snapshot).label}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0 text-[10px]">
+            <span className="text-slate-400">Trust Score:</span>
+            <div className="flex items-center gap-1.5">
+              <div className="w-14 h-1.5 bg-slate-800 rounded-full overflow-hidden border border-white/5">
+                <div 
+                  className={`h-full rounded-full ${
+                    (session.trust_score_snapshot || 50) >= 80 ? 'bg-purple-400' :
+                    (session.trust_score_snapshot || 50) >= 50 ? 'bg-sky-400' :
+                    (session.trust_score_snapshot || 50) >= 30 ? 'bg-amber-400' : 'bg-rose-500'
+                  }`}
+                  style={{ width: `${Math.min(100, Math.max(5, session.trust_score_snapshot || 50))}%` }}
+                />
+              </div>
+              <span className={`font-bold font-mono ${
+                (session.trust_score_snapshot || 50) >= 80 ? 'text-purple-300' :
+                (session.trust_score_snapshot || 50) >= 50 ? 'text-sky-300' :
+                (session.trust_score_snapshot || 50) >= 30 ? 'text-amber-300' : 'text-rose-400'
+              }`}>
+                {session.trust_score_snapshot || 50}/100
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Message Stream */}
-      <div className="flex-1 overflow-y-auto p-3.5 flex flex-col gap-3 min-h-0 bg-[#0d0f14]">
+      <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-3.5 flex flex-col gap-3 min-h-0 bg-[#0d0f14]">
         {(!messages || messages.length === 0) && (
           <div className="flex-1 flex flex-col items-center justify-center text-center p-6 text-slate-500">
             <div className="w-8 h-8 rounded bg-[#191c26] border border-white/5 flex items-center justify-center mb-2 shadow-xs">
@@ -240,8 +332,6 @@ export default function TranscriptPanel({
             <span>Evaluating pricing policy & validating live floor...</span>
           </div>
         )}
-
-        <div ref={bottomRef} />
       </div>
 
       {/* Pinned HITL Review Banner */}

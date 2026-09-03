@@ -6,6 +6,7 @@ const NegotiationMessage = require('../models/NegotiationMessage');
 const { firewallCheck } = require('../firewall/firewallCheck');
 const { generateMerchantTurn } = require('../agents/merchantAgent');
 const { generateBuyerTurn } = require('../agents/buyerAgent');
+const customerMemoryService = require('../services/customerMemoryService');
 
 const MAX_ROUNDS = 8;
 
@@ -78,6 +79,7 @@ class NegotiationOrchestrator {
     }
 
     const sessionId = `ses_${Date.now()}_${uuidv4().substring(0, 8)}`;
+    const customerProfile = await customerMemoryService.getOrCreateCustomerProfile(buyerPersona);
 
     const session = await NegotiationSession.create({
       session_id: sessionId,
@@ -89,13 +91,17 @@ class NegotiationOrchestrator {
       list_price_snapshot: product.list_price,
       target_price_snapshot: product.target_price,
       floor_price_snapshot: product.floor_price,
+      customer_profile_id: customerProfile._id,
+      trust_score_snapshot: customerProfile.trust_score,
+      loyalty_tier_snapshot: customerProfile.loyalty_tier,
       rounds_count: 0
     });
 
-    // Broadcast session start
+    // Broadcast session start with customer reputation profile
     this.emitToSession(sessionId, 'negotiation:started', {
       session,
-      product
+      product,
+      customerProfile
     });
 
     // Run the negotiation loop asynchronously
@@ -180,6 +186,8 @@ class NegotiationOrchestrator {
       // Trigger visual Firewall Interception event if buyer bid below floor
       if (buyerFwResult === 'blocked' && buyerFwCheck) {
         console.warn(`[Firewall Intercept] Intercepted below-floor buyer bid: ₹${buyerTurn.offered_price} (Floor: ₹${buyerFwCheck.live_floor})`);
+        await customerMemoryService.recordLowballStrike(session.buyer_persona);
+
         const fwInterceptMsg = await NegotiationMessage.create({
           session_id: sessionId,
           sender: 'firewall',
@@ -264,6 +272,7 @@ class NegotiationOrchestrator {
       // TURN 2: MERCHANT AGENT
       // -------------------------------------------------------------
       const updatedMessages = await NegotiationMessage.find({ session_id: sessionId }).sort({ timestamp: 1 }).lean();
+      const customerProfile = await customerMemoryService.getOrCreateCustomerProfile(session.buyer_persona);
 
       let merchantTurn;
       try {
@@ -272,7 +281,8 @@ class NegotiationOrchestrator {
           quantity: session.quantity,
           messages: updatedMessages,
           currentRound: session.rounds_count,
-          firewallFeedback
+          firewallFeedback,
+          customerProfile
         });
       } catch (err) {
         console.error(`[Orchestrator] Merchant turn generation error in Round ${currentRound}:`, err.message);
@@ -461,19 +471,28 @@ class NegotiationOrchestrator {
     const rzpOrderId = await createRazorpayOrderForDeal(session, finalPrice, session.quantity);
     console.log(`[Orchestrator] Deal closed for ${session.session_id}. Stock will be decremented upon payment settlement.`);
 
+    const subtotalAmount = Math.round(finalPrice * session.quantity);
+    const gstTax = Math.round(subtotalAmount * 0.18);
+    const totalAmount = subtotalAmount + gstTax;
+    const invoiceNo = `INV-PAR-${session.session_id.substring(4, 12).toUpperCase()}`;
+
+    // Update Customer Memory & LTV
+    const dealSummary = `Contract: ${session.quantity}x ${liveProduct.name || session.product_id} @ ₹${finalPrice}/unit (Total: ₹${totalAmount.toLocaleString()} inc. GST)`;
+    const updatedProfile = await customerMemoryService.recordSuccessfulDeal(session.buyer_persona, totalAmount, dealSummary);
+
     session.status = 'deal_closed';
     session.final_price = finalPrice;
     session.floor_price_snapshot = liveProduct.floor_price;
     session.target_price_snapshot = liveProduct.target_price;
     session.list_price_snapshot = liveProduct.list_price;
     session.razorpay_order_id = rzpOrderId;
+    if (updatedProfile) {
+      session.customer_profile_id = updatedProfile._id;
+      session.trust_score_snapshot = updatedProfile.trust_score;
+      session.loyalty_tier_snapshot = updatedProfile.loyalty_tier;
+    }
     session.closed_at = new Date();
     await session.save();
-
-    const subtotalAmount = Math.round(finalPrice * session.quantity);
-    const gstTax = Math.round(subtotalAmount * 0.18);
-    const totalAmount = subtotalAmount + gstTax;
-    const invoiceNo = `INV-PAR-${session.session_id.substring(4, 12).toUpperCase()}`;
 
     const dealMsg = await NegotiationMessage.create({
       session_id: session.session_id,
@@ -500,7 +519,8 @@ class NegotiationOrchestrator {
       message: dealMsg,
       invoiceMessage: invoiceMsg,
       razorpay_order_id: rzpOrderId,
-      total_amount: totalAmount
+      total_amount: totalAmount,
+      customerProfile: updatedProfile
     });
 
     // Also emit invoiceMsg as a turn so chat displays both events sequentially

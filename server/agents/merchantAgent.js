@@ -16,12 +16,36 @@ const { callGeminiRaw, parseJsonResponse } = require('./geminiClient');
  *   action: 'continue' | 'deal_closed' | 'no_deal'
  * }>}
  */
-async function generateMerchantTurn({ product, quantity, messages, currentRound, firewallFeedback }) {
+async function generateMerchantTurn({ product, quantity, messages, currentRound, firewallFeedback, customerProfile }) {
   const isNegotiable = Boolean(product.negotiable);
   const listPrice = Number(product.list_price);
   const targetPrice = Number(product.target_price);
   const floorPrice = Number(product.floor_price);
   const discountLadder = JSON.stringify(product.discount_ladder || []);
+
+  const customerContext = customerProfile ? `
+BUYER REPUTATION & CUSTOMER MEMORY (LTV ENGINE):
+- Client Entity: "${customerProfile.company_name}"
+- Relationship Tier: ${customerProfile.loyalty_tier}
+- Trust Score: ${customerProfile.trust_score} / 100
+- Cumulative Lifetime Value (LTV): ₹${customerProfile.lifetime_spend_inr.toLocaleString()}
+- Completed Deals: ${customerProfile.deals_closed_count} fulfilled contracts
+- Historical Lowball Strikes: ${customerProfile.lowball_strikes}
+- Payment Reliability: ${customerProfile.payment_reliability_score}%
+- Concession Elasticity Adjustment: ${customerProfile.discount_elasticity_bonus >= 0 ? `+${customerProfile.discount_elasticity_bonus}%` : `${customerProfile.discount_elasticity_bonus}%`}
+- Memory of Previous Deal: "${customerProfile.last_deal_summary}"
+
+BEHAVIORAL POLICY DIRECTIVE:
+${customerProfile.loyalty_tier === 'VIP_PARTNER' ? 
+  `• REPEAT VIP CLIENT: This buyer is a trusted, high-volume partner (LTV ₹${customerProfile.lifetime_spend_inr.toLocaleString()}). In your opening greeting or counter, warmly acknowledge their ongoing partnership. You are authorized to utilize your unlocked +${customerProfile.discount_elasticity_bonus}% concession elasticity to offer preferred volume pricing and ensure customer retention.` : 
+customerProfile.loyalty_tier === 'GROWTH_ACCOUNT' ?
+  `• VALUED GROWTH CLIENT: Good transaction history (Trust Score: ${customerProfile.trust_score}/100). Maintain a professional, collaborative tone with standard volume flexibility.` :
+customerProfile.loyalty_tier === 'WATCHLIST' ?
+  `• WATCHLIST ACCOUNT: Mixed history with ${customerProfile.lowball_strikes} past lowball attempts. Tighten concession rounds and demand firm commitments before discounting.` :
+customerProfile.loyalty_tier === 'CHRONIC_LOWBALLER' ?
+  `• CHRONIC LOWBALLER / HIGH RISK: This buyer frequently attempts predatory bids below cost (Trust Score: ${customerProfile.trust_score}/100). Do NOT concede any volume discounts. Anchor strictly at full list price (₹${listPrice}/unit). Be polite but completely unyielding.` :
+  `• NEW PROSPECT: First-time customer. Standard B2B negotiation terms apply.`}
+` : '';
 
   const systemPrompt = `You are Parlay, a merchant's autonomous AI negotiation agent for bulk/wholesale B2B orders.
 
@@ -35,6 +59,7 @@ MERCHANT PRODUCT CONTEXT:
 - Discount Ladder Guidelines: ${discountLadder}
 - Negotiable: ${isNegotiable}
 - Current Round: ${currentRound} of 8
+${customerContext}
 
 CORE NEGOTIATION RULES:
 1. STOCK & QUANTITY LIMITS:

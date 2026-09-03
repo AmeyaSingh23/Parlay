@@ -156,6 +156,21 @@ export default function Dashboard() {
           if (prev.some(m => m._id === data._id || m.message === data.message)) return prev;
           return [...prev, data];
         });
+        fetchSessions();
+      }
+      if (event === 'negotiation:firewall' && data) {
+        setMessages((prev) => {
+          if (prev.some(m => m._id === data._id || (m.message === data.message && m.round === data.round))) return prev;
+          return [...prev, data];
+        });
+        fetchSessions();
+      }
+      if (event === 'negotiation:status' && data) {
+        if (data.session) {
+          setCurrentSession((prev) => (prev?.session_id === sessionId || !prev) ? data.session : prev);
+        }
+        setIsNegotiating(false);
+        fetchSessions();
       }
     };
 
@@ -166,6 +181,12 @@ export default function Dashboard() {
       });
       fetchSessions();
       if (data.session_id) {
+        if (socket) {
+          socket.emit('join:session', data.session_id);
+        }
+        if (data.initialMessages && data.initialMessages.length > 0) {
+          setMessages(data.initialMessages);
+        }
         handleSelectSession(data.session_id);
       }
     };
@@ -262,16 +283,27 @@ export default function Dashboard() {
   // Inspect Past Session
   const handleSelectSession = async (sessionId) => {
     try {
-      const res = await axios.get(`/negotiation/sessions/${sessionId}`);
-      setCurrentSession(res.data.session);
-      setMessages(res.data.messages);
-
-      const matchedProd = products.find(p => p.product_id === res.data.session.product_id);
-      if (matchedProd) setSelectedProduct(matchedProd);
-
       if (socket) {
         socket.emit('join:session', sessionId);
       }
+
+      const res = await axios.get(`/negotiation/sessions/${sessionId}`);
+      setCurrentSession(res.data.session);
+
+      setMessages((prev) => {
+        const fetched = res.data.messages || [];
+        if (fetched.length >= prev.length) return fetched;
+        const merged = [...fetched];
+        prev.forEach(p => {
+          if (!merged.some(m => (m._id && m._id === p._id) || m.message === p.message)) {
+            merged.push(p);
+          }
+        });
+        return merged;
+      });
+
+      const matchedProd = products.find(p => p.product_id === res.data.session.product_id);
+      if (matchedProd) setSelectedProduct(matchedProd);
     } catch (err) {
       toast.error('Failed to load session transcript');
     }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import axios from '../api/axios';
 import {
@@ -12,6 +12,7 @@ import {
   ArrowLeft,
   ExternalLink,
   ShieldCheck,
+  ShieldAlert,
   Play,
   CheckCircle2,
   AlertTriangle,
@@ -23,7 +24,8 @@ import {
   DollarSign,
   RotateCw,
   Search,
-  Receipt
+  Receipt,
+  Award
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import InvoiceModal from '../components/InvoiceModal';
@@ -51,10 +53,19 @@ export default function AgentCatalog() {
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [ledgerFilter, setLedgerFilter] = useState('all'); // 'all' | 'paid' | 'pending' | 'quarantined'
   const [ledgerPersona, setLedgerPersona] = useState('all');
+  const [customerProfiles, setCustomerProfiles] = useState([]);
+  const terminalLogsContainerRef = useRef(null);
+
+  useEffect(() => {
+    if (terminalLogsContainerRef.current) {
+      terminalLogsContainerRef.current.scrollTop = terminalLogsContainerRef.current.scrollHeight;
+    }
+  }, [simLogs]);
 
   useEffect(() => {
     fetchCatalog();
     fetchBuyerOrders();
+    fetchCustomerProfiles();
   }, []);
 
   useEffect(() => {
@@ -62,6 +73,17 @@ export default function AgentCatalog() {
       fetchBuyerOrders();
     }
   }, [activeTab, ledgerFilter, ledgerPersona]);
+
+  const fetchCustomerProfiles = async () => {
+    try {
+      const res = await axios.get('/agent/profiles');
+      if (res.data?.profiles) {
+        setCustomerProfiles(res.data.profiles);
+      }
+    } catch (err) {
+      console.error('Failed to load customer profiles:', err);
+    }
+  };
 
   const fetchCatalog = async () => {
     try {
@@ -128,8 +150,12 @@ export default function AgentCatalog() {
   const [terminalInput, setTerminalInput] = useState('');
 
   // Run in-browser A2A Simulation
-  const runSimulator = async (overridePersona = null) => {
+  const runSimulator = async (overridePersona = null, overrideSku = null, overrideQty = null, overrideAutoSettle = null) => {
     const activePersona = overridePersona || simPersona;
+    const activeSku = overrideSku || simSku;
+    const activeQty = overrideQty !== null && overrideQty !== undefined ? Number(overrideQty) : Number(simQty);
+    const activeAutoSettle = overrideAutoSettle !== null && overrideAutoSettle !== undefined ? Boolean(overrideAutoSettle) : autoSettle;
+
     setIsSimRunning(true);
     setSimLogs([]);
 
@@ -150,22 +176,33 @@ export default function AgentCatalog() {
       };
       const entityName = personaEntityNames[activePersona] || 'Enterprise Procurement Bot';
 
-      log(`[STEP 1] Dispatching RFQ for ${simQty} units of ${simSku} (${entityName})...`, 'blue');
+      log(`[STEP 1] Dispatching RFQ for ${activeQty} units of ${activeSku} (${entityName})...`, 'blue');
       const rfqRes = await axios.post('/agent/rfq', {
-        product_id: simSku,
-        quantity: Number(simQty),
+        product_id: activeSku,
+        quantity: Number(activeQty),
         buyer_agent_name: entityName,
         buyer_persona: activePersona
       });
 
       const session = rfqRes.data;
       log(`✔ RFQ Accepted! Session ID: ${session.session_id}`, 'green');
+
+      if (session.customer_profile) {
+        const cp = session.customer_profile;
+        log(`🧠 [REPUTATION ENGINE]: Identified Client: ${cp.company_name}`, 'cyan');
+        log(`   Relationship Tier: ${cp.loyalty_tier} | Trust Score: ${cp.trust_score}/100 | LTV: ₹${(cp.lifetime_spend_inr || 0).toLocaleString()}`, 'bright');
+        log(`   Active Policy: ${cp.elasticity_bonus_pct >= 0 ? '+' : ''}${cp.elasticity_bonus_pct}% Concession Elasticity | Deals Closed: ${cp.deals_closed || 0}`, 'green');
+        if (cp.last_deal_summary) {
+          log(`   Episodic Memory: "${cp.last_deal_summary}"`, 'dim');
+        }
+      }
+
       log(`Merchant Opening Offer: ₹${session.merchant_opening_turn.proposed_price_inr}/unit`, 'magenta');
       log(`"${session.merchant_opening_turn.message}"`, 'dim');
 
       let currentRound = 1;
       let isClosed = false;
-      const targetItem = catalog?.items?.find(i => i.sku === simSku);
+      const targetItem = catalog?.items?.find(i => i.sku === activeSku);
       const listPrice = targetItem?.list_price_inr || 1200;
 
       let myBid;
@@ -196,7 +233,7 @@ export default function AgentCatalog() {
           const negRes = await axios.post('/agent/negotiate', {
             session_id: session.session_id,
             offered_price: myBid,
-            message: `We appreciate your opening quote. For our commitment of ${simQty} units, our procurement mandate authorizes ₹${myBid}/unit. Can you adjust to this volume rate?`,
+            message: `We appreciate your opening quote. For our commitment of ${activeQty} units, our procurement mandate authorizes ₹${myBid}/unit. Can you adjust to this volume rate?`,
             action: 'continue'
           });
 
@@ -218,18 +255,18 @@ export default function AgentCatalog() {
               await axios.post('/agent/negotiate', {
                 session_id: session.session_id,
                 offered_price: finalPrice,
-                message: `Agreed. We accept ₹${finalPrice}/unit for ${simQty} units. Proforma commercial invoice confirmed.`,
+                message: `Agreed. We accept ₹${finalPrice}/unit for ${activeQty} units. Proforma commercial invoice confirmed.`,
                 action: 'deal_closed'
               });
 
               isClosed = true;
 
-              const dealProduct = catalog?.items?.find(i => i.sku === simSku);
+              const dealProduct = catalog?.items?.find(i => i.sku === activeSku);
               const closedSessionData = {
                 session_id: session.session_id,
-                product_id: simSku,
+                product_id: activeSku,
                 product_name: dealProduct?.name || 'Bulk Industrial Goods',
-                quantity: Number(simQty),
+                quantity: Number(activeQty),
                 final_price: finalPrice,
                 status: 'deal_closed',
                 payment_status: 'pending',
@@ -239,13 +276,13 @@ export default function AgentCatalog() {
               fetchBuyerOrders();
 
               const invNumber = `INV-PAR-${session.session_id.substring(4, 12).toUpperCase()}`;
-              const subtotalAmt = Math.round(finalPrice * Number(simQty));
+              const subtotalAmt = Math.round(finalPrice * Number(activeQty));
               const totalWithGst = Math.round(subtotalAmt * 1.18);
               log(`\n📄 [STEP 2] Merchant Issued Commercial Proforma Invoice: ${invNumber}`, 'cyan');
               log(`Subtotal: ₹${subtotalAmt.toLocaleString()} + 18% GST (₹${(totalWithGst - subtotalAmt).toLocaleString()}) = ₹${totalWithGst.toLocaleString()}`, 'dim');
 
               // 3. Settlement
-              if (autoSettle) {
+              if (activeAutoSettle) {
                 await new Promise(r => setTimeout(r, 1000));
                 log(`\n⚡ [STEP 3] Executing Autonomous Bounded Settlement (POST /api/agent/settle)...`, 'cyan');
                 const settleRes = await axios.post('/agent/settle', {
@@ -257,7 +294,7 @@ export default function AgentCatalog() {
                   log(`🎉 SETTLEMENT CAPTURED & CONFIRMED!`, 'green');
                   log(`Transaction ID: ${settleRes.data.transaction_id}`, 'bright');
                   log(`Razorpay Order ID: ${settleRes.data.razorpay_order_id}`, 'bright');
-                  log(`Final Order: ${simQty} units @ ₹${settleRes.data.final_price_per_unit_inr}/unit = ₹${settleRes.data.total_with_gst_inr.toLocaleString()} (inc. 18% GST)`, 'bright');
+                  log(`Final Order: ${activeQty} units @ ₹${settleRes.data.final_price_per_unit_inr}/unit = ₹${settleRes.data.total_with_gst_inr.toLocaleString()} (inc. 18% GST)`, 'bright');
                   log(`Audit Receipt: ${settleRes.data.receipt_audit}`, 'green');
 
                   setClosedSession(prev => ({
@@ -267,10 +304,12 @@ export default function AgentCatalog() {
                     razorpay_order_id: settleRes.data.razorpay_order_id
                   }));
                   fetchBuyerOrders();
+                  fetchCustomerProfiles();
                 }
               } else {
                 log(`\n💳 DEAL CLOSED — Proforma Issued!`, 'yellow');
                 log(`Awaiting Buyer Payment: Use the "Pay with Razorpay" or "Auto Settle" buttons below.`, 'bright');
+                fetchCustomerProfiles();
               }
               break;
             }
@@ -286,6 +325,7 @@ export default function AgentCatalog() {
           if (negErr.response?.status === 422) {
             log(`🚨 [FIREWALL INTERCEPTION]: ${negErr.response.data.message || 'Bid rejected below floor'}`, 'red');
             log(`🛑 Session quarantined by deterministic firewall defense!`, 'red');
+            fetchCustomerProfiles();
             break;
           } else {
             log(`Error: ${negErr.message}`, 'red');
@@ -341,7 +381,8 @@ export default function AgentCatalog() {
 
   const handleTerminalSubmit = (e) => {
     if (e) e.preventDefault();
-    const cmd = terminalInput.trim().toLowerCase();
+    const rawInput = terminalInput.trim();
+    const cmd = rawInput.toLowerCase();
     setTerminalInput('');
 
     if (!cmd) return;
@@ -354,15 +395,102 @@ export default function AgentCatalog() {
     if (cmd === 'help') {
       setSimLogs(prev => [
         ...prev,
-        { text: 'Available CLI Commands:', type: 'bright', timestamp: new Date().toLocaleTimeString() },
-        { text: '  run                           - Execute procurement bot with current settings', type: 'cyan', timestamp: new Date().toLocaleTimeString() },
-        { text: '  run --persona=floor_tester    - Test adversarial firewall security quarantine', type: 'cyan', timestamp: new Date().toLocaleTimeString() },
-        { text: '  run --persona=lowballer       - Test aggressive haggle & HITL escalation', type: 'cyan', timestamp: new Date().toLocaleTimeString() },
-        { text: '  run --persona=reasonable      - Test fair SME bulk procurement and settlement', type: 'cyan', timestamp: new Date().toLocaleTimeString() },
-        { text: '  run --persona=impatient       - Test fast-closing enterprise buyer', type: 'cyan', timestamp: new Date().toLocaleTimeString() },
-        { text: '  catalog                       - Display active warehouse catalog & stock', type: 'cyan', timestamp: new Date().toLocaleTimeString() },
+        { text: '═════════════════ PARLAY A2A CLI TERMINAL COMMANDS ═════════════════', type: 'bright', timestamp: new Date().toLocaleTimeString() },
+        { text: '  run                           - Execute procurement bot with active config', type: 'cyan', timestamp: new Date().toLocaleTimeString() },
+        { text: '  run --floor_tester            - Execute adversarial floor tester (Firewall defense)', type: 'cyan', timestamp: new Date().toLocaleTimeString() },
+        { text: '  run --lowballer               - Execute aggressive lowballer (HITL escalation)', type: 'cyan', timestamp: new Date().toLocaleTimeString() },
+        { text: '  run --reasonable              - Execute fair bulk buyer (Deal consensus & settlement)', type: 'cyan', timestamp: new Date().toLocaleTimeString() },
+        { text: '  run --impatient               - Execute fast enterprise procurement agent', type: 'cyan', timestamp: new Date().toLocaleTimeString() },
+        { text: '  run --sku=SKU --qty=N         - Execute with inline parameters (e.g. run --sku=SKU-INV-2002 --qty=20)', type: 'cyan', timestamp: new Date().toLocaleTimeString() },
+        { text: '  sku <SKU_CODE>                - Switch target inventory item (e.g. sku SKU-INV-2002)', type: 'cyan', timestamp: new Date().toLocaleTimeString() },
+        { text: '  qty <NUMBER>                  - Set procurement batch quantity (e.g. qty 25)', type: 'cyan', timestamp: new Date().toLocaleTimeString() },
+        { text: '  persona <TYPE>                - Set persona: reasonable | lowballer | floor_tester | impatient', type: 'cyan', timestamp: new Date().toLocaleTimeString() },
+        { text: '  autosettle <on|off>           - Toggle autonomous Razorpay settlement capture', type: 'cyan', timestamp: new Date().toLocaleTimeString() },
+        { text: '  config                        - Display active agent configuration dossier', type: 'cyan', timestamp: new Date().toLocaleTimeString() },
+        { text: '  catalog                       - Display active warehouse catalog & live stock', type: 'cyan', timestamp: new Date().toLocaleTimeString() },
         { text: '  clear                         - Clear terminal output', type: 'cyan', timestamp: new Date().toLocaleTimeString() }
       ]);
+      return;
+    }
+
+    if (cmd === 'config') {
+      const activeProd = catalog?.items?.find(i => i.sku === simSku);
+      setSimLogs(prev => [
+        ...prev,
+        { text: '--- ACTIVE AGENT CONFIGURATION ---', type: 'bright', timestamp: new Date().toLocaleTimeString() },
+        { text: `  Target SKU:      ${simSku} (${activeProd?.name || 'Selected Item'})`, type: 'dim', timestamp: new Date().toLocaleTimeString() },
+        { text: `  Batch Quantity:  ${simQty} units`, type: 'dim', timestamp: new Date().toLocaleTimeString() },
+        { text: `  Buyer Persona:   ${simPersona.toUpperCase()}`, type: 'dim', timestamp: new Date().toLocaleTimeString() },
+        { text: `  Auto-Settlement: ${autoSettle ? 'ENABLED (Instant Razorpay capture)' : 'DISABLED (Manual B2B checkout)'}`, type: 'dim', timestamp: new Date().toLocaleTimeString() }
+      ]);
+      return;
+    }
+
+    if (cmd.startsWith('sku ') || cmd.startsWith('set sku ')) {
+      const parts = rawInput.split(/\s+/);
+      const newSku = parts[parts.length - 1].toUpperCase();
+      const matched = catalog?.items?.find(i => i.sku.toUpperCase() === newSku);
+      if (matched) {
+        setSimSku(matched.sku);
+        setSimLogs(prev => [
+          ...prev,
+          { text: `✔ [CONFIG]: Target SKU updated to ${matched.sku} ("${matched.name}") - List: ₹${matched.list_price_inr}`, type: 'green', timestamp: new Date().toLocaleTimeString() }
+        ]);
+      } else {
+        setSimLogs(prev => [
+          ...prev,
+          { text: `Error: SKU "${newSku}" not found in catalog. Type "catalog" to view valid SKUs.`, type: 'red', timestamp: new Date().toLocaleTimeString() }
+        ]);
+      }
+      return;
+    }
+
+    if (cmd.startsWith('qty ') || cmd.startsWith('set qty ')) {
+      const parts = rawInput.split(/\s+/);
+      const parsedQty = parseInt(parts[parts.length - 1], 10);
+      if (!isNaN(parsedQty) && parsedQty > 0) {
+        setSimQty(parsedQty);
+        setSimLogs(prev => [
+          ...prev,
+          { text: `✔ [CONFIG]: Batch Quantity set to ${parsedQty} units`, type: 'green', timestamp: new Date().toLocaleTimeString() }
+        ]);
+      } else {
+        setSimLogs(prev => [
+          ...prev,
+          { text: `Error: Invalid quantity. Please provide a positive number (e.g. qty 50).`, type: 'red', timestamp: new Date().toLocaleTimeString() }
+        ]);
+      }
+      return;
+    }
+
+    if (cmd.startsWith('persona ') || cmd.startsWith('set persona ')) {
+      const parts = rawInput.split(/\s+/);
+      const p = parts[parts.length - 1].toLowerCase();
+      const valid = ['reasonable', 'lowballer', 'floor_tester', 'impatient', 'impatient_enterprise'];
+      if (valid.includes(p)) {
+        const target = p === 'impatient' ? 'impatient_enterprise' : p;
+        setSimPersona(target);
+        setSimLogs(prev => [
+          ...prev,
+          { text: `✔ [CONFIG]: Persona updated to ${target.toUpperCase()}`, type: 'green', timestamp: new Date().toLocaleTimeString() }
+        ]);
+      } else {
+        setSimLogs(prev => [
+          ...prev,
+          { text: `Error: Invalid persona. Options: reasonable | lowballer | floor_tester | impatient`, type: 'red', timestamp: new Date().toLocaleTimeString() }
+        ]);
+      }
+      return;
+    }
+
+    if (cmd.startsWith('autosettle')) {
+      if (cmd.includes('off') || cmd.includes('false') || cmd.includes('0')) {
+        setAutoSettle(false);
+        setSimLogs(prev => [...prev, { text: '✔ [CONFIG]: Auto-settlement DISABLED (Manual invoice checkout)', type: 'green', timestamp: new Date().toLocaleTimeString() }]);
+      } else {
+        setAutoSettle(true);
+        setSimLogs(prev => [...prev, { text: '✔ [CONFIG]: Auto-settlement ENABLED (Autonomous Razorpay capture)', type: 'green', timestamp: new Date().toLocaleTimeString() }]);
+      }
       return;
     }
 
@@ -386,14 +514,44 @@ export default function AgentCatalog() {
       else if (cmd.includes('impatient')) targetPersona = 'impatient_enterprise';
       else if (cmd.includes('reasonable')) targetPersona = 'reasonable';
 
+      // Inline flags: --sku=..., --qty=..., --manual / --auto
+      let effectiveSku = simSku;
+      const skuMatch = rawInput.match(/--sku=([^\s]+)/i);
+      if (skuMatch) {
+        const found = catalog?.items?.find(i => i.sku.toUpperCase() === skuMatch[1].toUpperCase());
+        if (found) {
+          effectiveSku = found.sku;
+          setSimSku(found.sku);
+        }
+      }
+
+      let effectiveQty = simQty;
+      const qtyMatch = rawInput.match(/--qty=([0-9]+)/i);
+      if (qtyMatch) {
+        const q = parseInt(qtyMatch[1], 10);
+        if (q > 0) {
+          effectiveQty = q;
+          setSimQty(q);
+        }
+      }
+
+      let effectiveAutoSettle = autoSettle;
+      if (rawInput.includes('--manual') || rawInput.includes('--autosettle=off')) {
+        effectiveAutoSettle = false;
+        setAutoSettle(false);
+      } else if (rawInput.includes('--auto') || rawInput.includes('--autosettle=on')) {
+        effectiveAutoSettle = true;
+        setAutoSettle(true);
+      }
+
       setSimPersona(targetPersona);
-      runSimulator(targetPersona);
+      runSimulator(targetPersona, effectiveSku, effectiveQty, effectiveAutoSettle);
       return;
     }
 
     setSimLogs(prev => [
       ...prev,
-      { text: `Command not recognized: "${cmd}". Type "help" for a list of commands.`, type: 'red', timestamp: new Date().toLocaleTimeString() }
+      { text: `Command not recognized: "${rawInput}". Type "help" for a list of commands.`, type: 'red', timestamp: new Date().toLocaleTimeString() }
     ]);
   };
 
@@ -688,6 +846,103 @@ export default function AgentCatalog() {
                     <span className="text-indigo-300 font-bold">REST / MCP Tool v1.0</span>
                   </div>
                 </div>
+
+                {/* Customer Memory & Reputation Intelligence HUD */}
+                {(() => {
+                  const activeProfile = customerProfiles.find(p => p.persona_key === simPersona || p.buyer_id === simPersona) || {
+                    company_name: simPersona === 'reasonable' ? 'Apex Global Procurement' :
+                                  simPersona === 'lowballer' ? 'Titan Bulk Liquidators' :
+                                  simPersona === 'impatient_enterprise' ? 'Nexus FastTrack Logistics' : 'Spectre Automated Arbitrage',
+                    trust_score: simPersona === 'reasonable' ? 65 : simPersona === 'lowballer' ? 25 : simPersona === 'impatient_enterprise' ? 55 : 20,
+                    loyalty_tier: simPersona === 'reasonable' ? 'GROWTH_ACCOUNT' : simPersona === 'lowballer' ? 'CHRONIC_LOWBALLER' : 'WATCHLIST',
+                    lifetime_spend_inr: 0,
+                    deals_closed_count: 0,
+                    lowball_strikes: simPersona === 'lowballer' ? 2 : 0,
+                    discount_elasticity_bonus: simPersona === 'reasonable' ? 1.5 : -3
+                  };
+
+                  return (
+                    <div className="p-3.5 rounded-lg bg-gradient-to-br from-[#121626] to-[#0d101a] border border-indigo-500/20 text-[11px] font-mono space-y-2.5">
+                      <div className="flex items-center justify-between border-b border-white/10 pb-1.5">
+                        <div className="flex items-center gap-1.5">
+                          <Award className="w-3.5 h-3.5 text-indigo-400" />
+                          <span className="text-[10px] text-indigo-300 uppercase tracking-wider font-bold">LTV & Reputation Memory</span>
+                        </div>
+                        <span className="text-[9px] px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-300 font-bold border border-indigo-500/30">
+                          LIVE
+                        </span>
+                      </div>
+
+                      <div className="space-y-1">
+                        <div className="text-white font-bold text-xs truncate">
+                          {activeProfile.company_name}
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-400 text-[10px]">Tier:</span>
+                          <span className={`text-[9px] px-1.5 py-0.2 rounded font-bold ${
+                            activeProfile.loyalty_tier === 'VIP_PARTNER' ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' :
+                            activeProfile.loyalty_tier === 'GROWTH_ACCOUNT' ? 'bg-sky-500/20 text-sky-300 border border-sky-500/30' :
+                            activeProfile.loyalty_tier === 'CHRONIC_LOWBALLER' ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30' :
+                            'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                          }`}>
+                            {activeProfile.loyalty_tier?.replace('_', ' ')}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Trust Score Progress Bar */}
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between text-[10px]">
+                          <span className="text-slate-400">Trust Score:</span>
+                          <span className={`font-bold ${
+                            activeProfile.trust_score >= 80 ? 'text-purple-300' :
+                            activeProfile.trust_score >= 50 ? 'text-sky-300' :
+                            activeProfile.trust_score >= 30 ? 'text-amber-300' : 'text-rose-400'
+                          }`}>
+                            {activeProfile.trust_score || 50}/100
+                          </span>
+                        </div>
+                        <div className="w-full h-1.5 bg-black/60 rounded-full overflow-hidden border border-white/5">
+                          <div 
+                            className={`h-full rounded-full transition-all duration-500 ${
+                              activeProfile.trust_score >= 80 ? 'bg-purple-400' :
+                              activeProfile.trust_score >= 50 ? 'bg-sky-400' :
+                              activeProfile.trust_score >= 30 ? 'bg-amber-400' : 'bg-rose-500'
+                            }`}
+                            style={{ width: `${Math.min(100, Math.max(5, activeProfile.trust_score || 50))}%` }}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="pt-1.5 border-t border-white/5 grid grid-cols-2 gap-2 text-[10px]">
+                        <div>
+                          <span className="text-slate-500 block">Lifetime Value</span>
+                          <span className="text-emerald-400 font-bold">₹{(activeProfile.lifetime_spend_inr || 0).toLocaleString()}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-500 block">Deals Fulfilled</span>
+                          <span className="text-white font-bold">{activeProfile.deals_closed_count || 0} contracts</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-500 block">Elasticity Bonus</span>
+                          <span className={`font-bold ${activeProfile.discount_elasticity_bonus >= 0 ? 'text-indigo-400' : 'text-rose-400'}`}>
+                            {activeProfile.discount_elasticity_bonus >= 0 ? `+${activeProfile.discount_elasticity_bonus}%` : `${activeProfile.discount_elasticity_bonus}%`}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-slate-500 block">Lowball Strikes</span>
+                          <span className={`font-bold ${activeProfile.lowball_strikes > 0 ? 'text-rose-400' : 'text-slate-400'}`}>
+                            {activeProfile.lowball_strikes || 0}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="p-1.5 rounded bg-black/40 border border-white/5 text-[9px] text-slate-400 italic">
+                        💡 Dynamic Evolution: Lowball strikes decay and trust rehabilitates automatically upon completing legitimate paid contracts.
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
 
@@ -748,7 +1003,7 @@ export default function AgentCatalog() {
               </div>
 
               {/* Terminal Logs Window */}
-              <div className="flex-1 p-4 overflow-y-auto space-y-1.5 text-xs text-slate-300 min-h-0">
+              <div ref={terminalLogsContainerRef} className="flex-1 p-4 overflow-y-auto space-y-1.5 text-xs text-slate-300 min-h-0">
                 {simLogs.length === 0 && !isSimRunning && (
                   <div className="h-full flex flex-col items-center justify-center text-slate-600 text-center">
                     <Terminal className="w-8 h-8 text-slate-700 mb-2" />
@@ -1004,20 +1259,22 @@ export default function AgentCatalog() {
                         <span className="text-xs font-bold text-white font-sans">
                           {order.product_name || order.product_id}
                         </span>
-                        <span className="text-[10px] text-slate-400 font-mono">
-                          {order.invoice_number}
-                        </span>
+                        {order.invoice_number && (
+                          <span className="text-[10px] text-slate-400 font-mono">
+                            {order.invoice_number}
+                          </span>
+                        )}
                         <span className="text-[9px] px-2 py-0.5 rounded bg-white/5 text-slate-300 border border-white/10">
                           {order.buyer_agent_name}
                         </span>
                         <span className={`text-[9px] px-2 py-0.5 rounded font-bold ${
-                          order.status === 'quarantined'
+                          order.status === 'blocked_by_firewall'
                             ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
                             : order.payment_status === 'paid'
                             ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
                             : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
                         }`}>
-                          {order.status === 'quarantined'
+                          {order.status === 'blocked_by_firewall'
                             ? 'BLOCKED BY FIREWALL'
                             : order.payment_status === 'paid'
                             ? 'PAID & CAPTURED'
@@ -1027,19 +1284,27 @@ export default function AgentCatalog() {
 
                       {/* Financials & Savings Alpha */}
                       <div className="flex items-center gap-3 text-xs text-slate-300 flex-wrap">
-                        <span>
-                          {order.quantity} units × ₹{order.final_price_inr || order.list_price_inr}
-                        </span>
-                        <span className="text-slate-600">•</span>
-                        <span>
-                          Total: <strong className="text-white">₹{order.total_inr.toLocaleString()}</strong> (inc. 18% GST)
-                        </span>
-                        {order.savings_inr > 0 && (
+                        {order.status === 'blocked_by_firewall' ? (
+                          <span className="text-rose-300 text-[11px] font-mono">
+                            Requested: {order.quantity} units • Transaction halted below supplier floor (₹{order.floor_price_snapshot || 950})
+                          </span>
+                        ) : (
                           <>
-                            <span className="text-slate-600">•</span>
-                            <span className="text-emerald-400 text-[11px] font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
-                              🎉 Saved ₹{order.savings_inr.toLocaleString()} ({order.savings_pct}% below List)
+                            <span>
+                              {order.quantity} units × ₹{order.final_price_inr || order.list_price_inr}
                             </span>
+                            <span className="text-slate-600">•</span>
+                            <span>
+                              Total: <strong className="text-white">₹{order.total_inr.toLocaleString()}</strong> (inc. 18% GST)
+                            </span>
+                            {order.savings_inr > 0 && (
+                              <>
+                                <span className="text-slate-600">•</span>
+                                <span className="text-emerald-400 text-[11px] font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+                                  🎉 Saved ₹{order.savings_inr.toLocaleString()} ({order.savings_pct}% below List)
+                                </span>
+                              </>
+                            )}
                           </>
                         )}
                       </div>
@@ -1060,36 +1325,45 @@ export default function AgentCatalog() {
 
                     {/* Action Buttons */}
                     <div className="flex items-center gap-2 shrink-0 flex-wrap">
-                      <button
-                        onClick={() => handleOpenLedgerDoc(order, 'invoice')}
-                        className="btn btn-secondary py-1.5 px-3 text-xs flex items-center gap-1.5 text-indigo-300 border-indigo-500/30 hover:bg-indigo-500/10 cursor-pointer"
-                        title="View Commercial Tax Invoice"
-                      >
-                        <FileText className="w-3.5 h-3.5" />
-                        <span>Tax Invoice</span>
-                      </button>
+                      {order.status === 'blocked_by_firewall' ? (
+                        <span className="text-[11px] font-bold text-rose-400 bg-rose-500/10 px-2.5 py-1 rounded border border-rose-500/20 flex items-center gap-1.5 font-mono">
+                          <ShieldAlert className="w-3.5 h-3.5 text-rose-400" />
+                          <span>Margin Protected (No Invoice)</span>
+                        </span>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => handleOpenLedgerDoc(order, 'invoice')}
+                            className="btn btn-secondary py-1.5 px-3 text-xs flex items-center gap-1.5 text-indigo-300 border-indigo-500/30 hover:bg-indigo-500/10 cursor-pointer"
+                            title="View Commercial Tax Invoice"
+                          >
+                            <FileText className="w-3.5 h-3.5" />
+                            <span>Tax Invoice</span>
+                          </button>
 
-                      <button
-                        onClick={() => handleOpenLedgerDoc(order, 'receipt')}
-                        className={`btn btn-secondary py-1.5 px-3 text-xs flex items-center gap-1.5 cursor-pointer ${
-                          order.payment_status === 'paid'
-                            ? 'text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/10'
-                            : 'text-slate-500 border-white/5 opacity-50'
-                        }`}
-                        title={order.payment_status === 'paid' ? 'View Payment Receipt' : 'Receipt available once settled'}
-                      >
-                        <Receipt className="w-3.5 h-3.5" />
-                        <span>Receipt</span>
-                      </button>
+                          <button
+                            onClick={() => handleOpenLedgerDoc(order, 'receipt')}
+                            className={`btn btn-secondary py-1.5 px-3 text-xs flex items-center gap-1.5 cursor-pointer ${
+                              order.payment_status === 'paid'
+                                ? 'text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/10'
+                                : 'text-slate-500 border-white/5 opacity-50'
+                            }`}
+                            title={order.payment_status === 'paid' ? 'View Payment Receipt' : 'Receipt available once settled'}
+                          >
+                            <Receipt className="w-3.5 h-3.5" />
+                            <span>Receipt</span>
+                          </button>
 
-                      {order.status === 'deal_closed' && order.payment_status !== 'paid' && (
-                        <button
-                          onClick={() => handleOpenLedgerDoc(order, 'invoice')}
-                          className="btn btn-primary py-1.5 px-3 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-md"
-                        >
-                          <CreditCard className="w-3.5 h-3.5" />
-                          <span>Pay Now</span>
-                        </button>
+                          {order.status === 'deal_closed' && order.payment_status !== 'paid' && (
+                            <button
+                              onClick={() => handleOpenLedgerDoc(order, 'invoice')}
+                              className="btn btn-primary py-1.5 px-3 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-md"
+                            >
+                              <CreditCard className="w-3.5 h-3.5" />
+                              <span>Pay with Razorpay</span>
+                            </button>
+                          )}
+                        </>
                       )}
                     </div>
                   </div>
