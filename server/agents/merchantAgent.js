@@ -111,7 +111,7 @@ You MUST respond with valid JSON adhering strictly to this schema:
 
   let proposedPrice = parsed.proposed_price !== null && !isNaN(Number(parsed.proposed_price))
     ? Math.round(Number(parsed.proposed_price))
-    : null;
+    : (parsed.action === 'no_deal' ? null : listPrice);
 
   return {
     message: parsed.message,

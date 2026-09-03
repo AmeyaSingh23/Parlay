@@ -342,6 +342,52 @@ const handleAgentNegotiate = async (req, res) => {
         });
       }
 
+      // HITL GOVERNANCE GATE:
+      // An autonomous deal cannot be finalized without Human Merchant sign-off if:
+      // 1. fwVal.needs_hitl is true (price is near floor)
+      // 2. The buyer is a Chronic Lowballer / High-Risk Account bidding below target price!
+      // 3. The session has not yet received human executive sign-off (!session.hitl_action)
+      const isChronicLowballerBelowTarget = (session.buyer_persona.includes('lowballer') || customerProfile?.loyalty_tier === 'CHRONIC_LOWBALLER') && agreedPrice < product.target_price;
+
+      if ((fwVal.needs_hitl || isChronicLowballerBelowTarget) && !session.hitl_action) {
+        session.status = 'pending_hitl';
+        session.pending_proposed_price = agreedPrice;
+        session.hitl_reason = fwVal.needs_hitl 
+          ? fwVal.reason 
+          : `Executive governance policy: Autonomous deal closure with Chronic Lowballer at ₹${agreedPrice}/unit (below target ₹${product.target_price}) requires Human Merchant approval.`;
+        await session.save();
+
+        const hitlMsg = await NegotiationMessage.create({
+          session_id: session.session_id,
+          sender: 'system',
+          message: `⏸️ [HUMAN-IN-THE-LOOP REQUIRED] Agreed price ₹${agreedPrice}/unit is below target margin with a High-Risk Lowballer account. Autonomous lock suspended awaiting Merchant Executive authorization.`,
+          proposed_price: agreedPrice,
+          policy_reason: 'HITL_LOWBALLER_APPROVAL_REQUIRED',
+          firewall_result: 'pass',
+          round: session.rounds_count
+        });
+
+        if (io) {
+          io.to(session_id).emit('negotiation:turn', hitlMsg);
+          io.to(session_id).emit('negotiation:hitl_required', { session, message: hitlMsg });
+          io.emit('negotiation:global_update', { sessionId: session_id, event: 'negotiation:hitl_required', data: { session, message: hitlMsg } });
+        }
+
+        return res.json({
+          status: 'pending_hitl',
+          session_id,
+          current_round: session.rounds_count,
+          pending_price: agreedPrice,
+          message: 'Session paused for Merchant Executive review.',
+          merchant_response: {
+            message: hitlMsg.message,
+            proposed_price_inr: agreedPrice,
+            policy_reason: 'HITL_LOWBALLER_APPROVAL_REQUIRED',
+            action: 'pending_hitl'
+          }
+        });
+      }
+
       const orchestrator = req.app.get('orchestrator');
       await orchestrator.closeDeal(session, agreedPrice, product);
 

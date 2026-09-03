@@ -377,6 +377,15 @@ const getBuyerDialogue = (persona, round, qty, bid) => {
                 action: 'deal_closed'
               });
 
+              if (closeRes.data?.status === 'pending_hitl') {
+                log(`\n⏸️ [HUMAN-IN-THE-LOOP REQUIRED]: Deal terms ₹${finalPrice}/unit suspended awaiting Merchant Executive authorization.`, 'yellow');
+                log(`👉 Session halted into PENDING HITL APPROVAL status.`, 'bright');
+                log(`👉 Switch to the Merchant Dashboard tab (/dashboard) to approve or reject this proposal live!`, 'cyan');
+                fetchBuyerOrders();
+                fetchCustomerProfiles();
+                break;
+              }
+
               isClosed = true;
 
               const dealProduct = catalog?.items?.find(i => i.sku === activeSku);
@@ -437,9 +446,11 @@ const getBuyerDialogue = (persona, round, qty, bid) => {
               myBid += 20;
             } else if (mResp.proposed_price_inr && mResp.proposed_price_inr > 0) {
               myBid = Math.min(myBudget, myBid + Math.max(10, Math.round((mResp.proposed_price_inr - myBid) * 0.45)));
-            } else {
+            } else if (mResp.action === 'no_deal') {
               log(`Merchant concluded round discussions without counter-offer.`, 'yellow');
               break;
+            } else {
+              myBid = Math.min(myBudget, myBid + 35);
             }
           }
         } catch (negErr) {
