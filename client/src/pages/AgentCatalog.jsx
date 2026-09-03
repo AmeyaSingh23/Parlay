@@ -29,8 +29,10 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import InvoiceModal from '../components/InvoiceModal';
+import { useSocket } from '../context/SocketContext';
 
 export default function AgentCatalog() {
+  const socket = useSocket();
   const [catalog, setCatalog] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('catalog'); // 'catalog' | 'simulator' | 'ledger' | 'docs' | 'mcp'
@@ -61,6 +63,51 @@ export default function AgentCatalog() {
       terminalLogsContainerRef.current.scrollTop = terminalLogsContainerRef.current.scrollHeight;
     }
   }, [simLogs]);
+
+  // Real-time Inventory & Stock Telemetry via WebSockets
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleInventoryUpdated = (updatedProduct) => {
+      setCatalog((prev) => {
+        if (!prev || !prev.items) return prev;
+        return {
+          ...prev,
+          items: prev.items.map(it => {
+            if (it.sku === updatedProduct.product_id) {
+              return {
+                ...it,
+                name: updatedProduct.name,
+                list_price_inr: updatedProduct.list_price,
+                ready_stock: updatedProduct.stock_level,
+                discount_brackets: updatedProduct.discount_ladder?.map(d => ({
+                  min_qty: d.min_qty,
+                  discount_pct: d.discount_pct,
+                  effective_price_inr: Math.round(updatedProduct.list_price * (1 - d.discount_pct / 100))
+                }))
+              };
+            }
+            return it;
+          })
+        };
+      });
+
+      setSimLogs((prev) => [
+        ...prev,
+        {
+          text: `⚡ [REAL-TIME WAREHOUSE TELEMETRY]: ${updatedProduct.name} stock updated to ${updatedProduct.stock_level} units (List: ₹${updatedProduct.list_price})`,
+          type: 'cyan',
+          timestamp: new Date().toLocaleTimeString()
+        }
+      ]);
+    };
+
+    socket.on('inventory:updated', handleInventoryUpdated);
+
+    return () => {
+      socket.off('inventory:updated', handleInventoryUpdated);
+    };
+  }, [socket]);
 
   useEffect(() => {
     fetchCatalog();
@@ -149,6 +196,49 @@ export default function AgentCatalog() {
 
   const [terminalInput, setTerminalInput] = useState('');
 
+const getBuyerDialogue = (persona, round, qty, bid) => {
+  if (persona === 'floor_tester') {
+    const floorPhrases = [
+      `Probing secondary arbitrage clearance. Bidding ₹${bid}/unit for ${qty} units.`,
+      `Testing spot market allocation threshold at ₹${bid}/unit. Can you authorize this rate?`,
+      `Submitting high-frequency allocation bid of ₹${bid}/unit for ${qty} units.`,
+      `Re-probing supplier elasticity at ₹${bid}/unit. Advise clearance viability.`
+    ];
+    return floorPhrases[(round - 2) % floorPhrases.length];
+  }
+
+  if (persona === 'impatient_enterprise') {
+    const impatientPhrases = [
+      `Our logistics schedule is urgent. We can commit immediately if you accept ₹${bid}/unit for ${qty} units.`,
+      `We need immediate warehouse dispatch. Can you finalize this batch at ₹${bid}/unit?`,
+      `Executive approval is ready for rapid settlement at ₹${bid}/unit. Please confirm terms.`,
+      `Final call for priority dispatch: We will issue payment immediately at ₹${bid}/unit.`
+    ];
+    return impatientPhrases[(round - 2) % impatientPhrases.length];
+  }
+
+  if (persona === 'lowballer') {
+    const lowballPhrases = [
+      `We have competing distributor quotes significantly below your opening. For ${qty} units, our mandate is anchored at ₹${bid}/unit.`,
+      `Your counter remains too rich for our balance sheet. We can stretch our budget marginally to ₹${bid}/unit.`,
+      `We are bulk liquidators; we operate on razor-thin retail margins. Meet us at ₹${bid}/unit to move this inventory today.`,
+      `This is our near-ceiling procurement offer of ₹${bid}/unit for ${qty} units. We cannot exceed this envelope.`,
+      `Final commercial offer: ₹${bid}/unit. If declined, we must reallocate this budget to alternative wholesale suppliers.`
+    ];
+    return lowballPhrases[Math.min(Math.max(0, round - 2), lowballPhrases.length - 1)];
+  }
+
+  // Reasonable / Standard
+  const reasonablePhrases = [
+    `Thank you for your initial quote. Given our commitment of ${qty} units, our approved target budget is ₹${bid}/unit.`,
+    `We appreciate the movement on price. We are prepared to bridge the difference and counter with ₹${bid}/unit.`,
+    `Our procurement committee has authorized an increase to ₹${bid}/unit with standard enterprise delivery terms.`,
+    `We are very close to consensus. Can you meet us halfway at ₹${bid}/unit to finalize the contract?`,
+    `Our final purchase order authorization is locked at ₹${bid}/unit for ${qty} units. Ready to execute payment upon confirmation.`
+  ];
+  return reasonablePhrases[Math.min(Math.max(0, round - 2), reasonablePhrases.length - 1)];
+};
+
   // Run in-browser A2A Simulation
   const runSimulator = async (overridePersona = null, overrideSku = null, overrideQty = null, overrideAutoSettle = null) => {
     const activePersona = overridePersona || simPersona;
@@ -222,7 +312,7 @@ export default function AgentCatalog() {
       }
 
       // 2. Negotiation Loop
-      while (currentRound <= 8 && !isClosed) {
+      while (currentRound < 8 && !isClosed) {
         currentRound++;
         await new Promise(r => setTimeout(r, 1200));
 
@@ -230,21 +320,30 @@ export default function AgentCatalog() {
         log(`[Buyer Bot Bid]: Submitting counter-offer of ₹${myBid}/unit (Budget: ₹${myBudget})`, 'blue');
 
         try {
+          const buyerMsgText = getBuyerDialogue(activePersona, currentRound, activeQty, myBid);
           const negRes = await axios.post('/agent/negotiate', {
             session_id: session.session_id,
             offered_price: myBid,
-            message: `We appreciate your opening quote. For our commitment of ${activeQty} units, our procurement mandate authorizes ₹${myBid}/unit. Can you adjust to this volume rate?`,
+            message: buyerMsgText,
             action: 'continue'
           });
 
           const data = negRes.data;
+          if (data.status === 'no_deal') {
+            log(`\n⏳ ${data.message || 'Negotiation ended without mutual agreement.'}`, 'yellow');
+            fetchBuyerOrders();
+            break;
+          }
+
           if (data.firewall_status === 'INTERCEPTED_AND_WARNED') {
             log(`⚠️ [FIREWALL ALERT]: Commercial policy warned below-floor proposal.`, 'yellow');
           }
 
           const mResp = data.merchant_response;
           if (mResp) {
-            log(`[Merchant Counter]: ₹${mResp.proposed_price_inr}/unit`, 'magenta');
+            if (mResp.proposed_price_inr) {
+              log(`[Merchant Counter]: ₹${mResp.proposed_price_inr}/unit`, 'magenta');
+            }
             log(`"${mResp.message}"`, 'dim');
             log(`Policy Rationale: ${mResp.policy_reason}`, 'dim');
 
@@ -317,8 +416,11 @@ export default function AgentCatalog() {
             // Adjust bid
             if (activePersona === 'floor_tester') {
               myBid += 20;
+            } else if (mResp.proposed_price_inr && mResp.proposed_price_inr > 0) {
+              myBid = Math.min(myBudget, myBid + Math.max(10, Math.round((mResp.proposed_price_inr - myBid) * 0.45)));
             } else {
-              myBid = Math.min(myBudget, myBid + Math.round((mResp.proposed_price_inr - myBid) * 0.45));
+              log(`Merchant concluded round discussions without counter-offer.`, 'yellow');
+              break;
             }
           }
         } catch (negErr) {
@@ -332,6 +434,16 @@ export default function AgentCatalog() {
             break;
           }
         }
+      }
+
+      if (!isClosed && currentRound >= 8) {
+        log(`\n⏳ Maximum negotiation rounds (8/8) reached without mutual agreement. Session ended (No Deal).`, 'yellow');
+        await axios.post('/agent/negotiate', {
+          session_id: session.session_id,
+          action: 'no_deal',
+          message: 'Maximum authorized negotiation rounds exhausted without mutual agreement.'
+        }).catch(() => {});
+        fetchBuyerOrders();
       }
     } catch (err) {
       log(`Simulation Error: ${err.message}`, 'red');
@@ -497,12 +609,17 @@ export default function AgentCatalog() {
     if (cmd === 'catalog') {
       setSimLogs(prev => [
         ...prev,
-        { text: '--- ACTIVE WAREHOUSE INVENTORY ---', type: 'bright', timestamp: new Date().toLocaleTimeString() },
-        ...(catalog?.items?.map(it => ({
-          text: `  [${it.sku}] ${it.name} | List: ₹${it.list_price_inr} | Stock: ${it.ready_stock} units`,
-          type: 'dim',
-          timestamp: new Date().toLocaleTimeString()
-        })) || [])
+        { text: '══════════════════════ ACTIVE WAREHOUSE CATALOG ══════════════════════', type: 'bright', timestamp: new Date().toLocaleTimeString() },
+        ...(catalog?.items?.map(it => {
+          const ladderText = it.discount_brackets?.length
+            ? `\n     └─ Volume Discounts: ${it.discount_brackets.map(b => `${b.min_qty}+ units @ ${b.discount_pct}% off (₹${b.effective_price_inr}/unit)`).join(' • ')}`
+            : '\n     └─ Volume Discounts: Flat Rate (Bespoke RFQ required)';
+          return {
+            text: `  [${it.sku}] ${it.name}\n     ├─ List Price: ₹${it.list_price_inr} | Ready Stock: ${it.ready_stock} units${ladderText}`,
+            type: 'cyan',
+            timestamp: new Date().toLocaleTimeString()
+          };
+        }) || [])
       ]);
       return;
     }

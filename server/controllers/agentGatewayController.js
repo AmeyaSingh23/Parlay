@@ -225,6 +225,24 @@ const handleAgentNegotiate = async (req, res) => {
       });
     }
 
+    if (session.rounds_count >= session.max_rounds) {
+      session.status = 'no_deal';
+      session.closed_at = new Date();
+      await session.save();
+
+      const io = req.app.get('io');
+      if (io) {
+        io.to(session_id).emit('negotiation:status', { session });
+        io.emit('negotiation:global_update', { sessionId: session_id, event: 'negotiation:status', data: { session } });
+      }
+
+      return res.status(200).json({
+        status: 'no_deal',
+        message: `Maximum negotiation rounds (${session.max_rounds}) reached without agreement. Session concluded.`,
+        session_id
+      });
+    }
+
     const product = await MerchantInventoryItem.findOne({ product_id: session.product_id }).lean();
     session.rounds_count += 1;
     await session.save();
