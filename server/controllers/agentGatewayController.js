@@ -446,9 +446,102 @@ const handleAgentSettle = async (req, res) => {
   }
 };
 
+/**
+ * GET /api/agent/orders
+ *
+ * Retrieves the Procurement Audit Ledger for buyer agents and the catalog portal.
+ * Returns past procurement negotiations, settlement receipts, savings achieved,
+ * and tax invoice metadata.
+ */
+const getAgentOrders = async (req, res) => {
+  try {
+    const { persona, status } = req.query;
+    const query = {};
+    if (persona && persona !== 'all') {
+      query.buyer_persona = persona;
+    }
+    if (status && status !== 'all') {
+      if (status === 'paid') {
+        query.payment_status = 'paid';
+      } else if (status === 'pending') {
+        query.status = 'deal_closed';
+        query.payment_status = { $ne: 'paid' };
+      } else if (status === 'quarantined') {
+        query.status = 'quarantined';
+      } else if (status === 'deal_closed') {
+        query.status = 'deal_closed';
+      }
+    }
+
+    const sessions = await NegotiationSession.find(query)
+      .sort({ updatedAt: -1 })
+      .limit(100)
+      .lean();
+
+    const orders = sessions.map(s => {
+      const listPrice = s.list_price_snapshot || s.final_price || 0;
+      const unitPrice = s.final_price || listPrice;
+      const qty = s.quantity || 1;
+      const subtotal = Math.round(unitPrice * qty);
+      const totalWithGst = Math.round(subtotal * 1.18);
+      const listTotal = Math.round(listPrice * qty);
+      const savingsInr = Math.max(0, listTotal - subtotal);
+      const savingsPct = listTotal > 0 ? Number(((savingsInr / listTotal) * 100).toFixed(1)) : 0;
+
+      return {
+        session_id: s.session_id,
+        invoice_number: `INV-PAR-${s.session_id.substring(4, 12).toUpperCase()}`,
+        receipt_number: `RCPT-PAR-${s.session_id.substring(4, 12).toUpperCase()}`,
+        product_id: s.product_id,
+        product_name: s.product_name,
+        quantity: qty,
+        list_price_inr: listPrice,
+        final_price_inr: s.final_price,
+        savings_inr: savingsInr,
+        savings_pct: savingsPct,
+        subtotal_inr: subtotal,
+        gst_inr: totalWithGst - subtotal,
+        total_inr: totalWithGst,
+        status: s.status,
+        payment_status: s.payment_status || 'unpaid',
+        razorpay_payment_id: s.razorpay_payment_id,
+        razorpay_order_id: s.razorpay_order_id,
+        buyer_persona: s.buyer_persona,
+        buyer_agent_name: s.buyer_agent_name || `${s.buyer_persona} Agent`,
+        rounds_completed: s.round || 0,
+        quarantine_reason: s.quarantine_reason,
+        created_at: s.createdAt,
+        updated_at: s.updatedAt,
+        paid_at: s.paid_at
+      };
+    });
+
+    const closedOrders = orders.filter(o => o.status === 'deal_closed');
+    const paidOrders = orders.filter(o => o.payment_status === 'paid');
+    const totalSpent = paidOrders.reduce((sum, o) => sum + o.total_inr, 0);
+    const totalSavings = closedOrders.reduce((sum, o) => sum + o.savings_inr, 0);
+
+    res.json({
+      success: true,
+      summary: {
+        total_deals: closedOrders.length,
+        paid_deals: paidOrders.length,
+        pending_payment: closedOrders.length - paidOrders.length,
+        total_spend_inr: totalSpent,
+        total_savings_inr: totalSavings
+      },
+      orders
+    });
+  } catch (err) {
+    console.error('[AgentGateway] getAgentOrders error:', err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
 module.exports = {
   getAgentCatalog,
   createAgentRfq,
   handleAgentNegotiate,
-  handleAgentSettle
+  handleAgentSettle,
+  getAgentOrders
 };

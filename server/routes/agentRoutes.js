@@ -4,7 +4,8 @@ const {
   getAgentCatalog,
   createAgentRfq,
   handleAgentNegotiate,
-  handleAgentSettle
+  handleAgentSettle,
+  getAgentOrders
 } = require('../controllers/agentGatewayController');
 
 /**
@@ -17,5 +18,6 @@ router.get('/catalog', getAgentCatalog);
 router.post('/rfq', createAgentRfq);
 router.post('/negotiate', handleAgentNegotiate);
 router.post('/settle', handleAgentSettle);
+router.get('/orders', getAgentOrders);
 
 module.exports = router;
