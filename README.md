@@ -208,11 +208,11 @@ To witness Parlay's real-time multi-agent negotiation, WebSocket streaming, and 
 └───────────────────────────────────────────────┘ └───────────────────────────────────────────────┘
 ```
 
-### The 4 Core Demonstration Scenarios
+### The 5 Core Demonstration Scenarios
 
 #### Scenario 1: Deterministic Firewall Blocks Predatory Agent (`run --floor_tester`)
 1. In the left window, click the red **`run --floor_tester`** pill (or type `run --floor_tester` into the terminal).
-2. The adversarial bot attempts predatory bids at 45% of catalog list price, aggressively testing below the seller's cost floor.
+2. The adversarial bot (Spectre Automated Arbitrage) attempts predatory bids at 45% of catalog list price, aggressively testing below the seller's cost floor.
 3. **What to observe:**
    * In the **Live Telemetry HUD**, the Firewall Sentinel turns red: `🚨 Intercepted (< Floor)`.
    * On the right window (Merchant Dashboard), the Firewall counter logs a breach and quarantines the bot with HTTP `422 Unprocessable Entity`.
@@ -220,29 +220,38 @@ To witness Parlay's real-time multi-agent negotiation, WebSocket streaming, and 
 
 #### Scenario 2: Chronic Lowballer Triggers Human-in-the-Loop (`run --lowballer`)
 1. In the left window, click the amber **`run --lowballer`** pill.
-2. The agent haggles aggressively. Titan Bulk Liquidators (Trust Score: 25, 2 strikes) pushes near the boundary margin.
+2. The agent (Titan Bulk Liquidators - Trust Score: 25, 2 strikes) haggles aggressively near the boundary margin.
 3. **What to observe:**
    * The negotiation automatically **pauses** into `PENDING_HITL` status.
    * On the right window, an executive **Human-in-the-Loop Authorization Bar** pops up: *"Deal terms suspended awaiting Merchant Executive authorization."*
    * Click **Approve Deal** on the dashboard. The session instantly unpauses and closes mutual consensus!
 
-#### Scenario 3: Bounded Consensus & Razorpay Standard Checkout (`run --reasonable`)
-1. In the left window, click the emerald **`run --reasonable`** pill.
-2. Apex Global Procurement (VIP Partner, Trust Score: 65) haggles in realistic, mutually respectful steps.
-3. **What to observe:**
-   * Both agents reach consensus at ~₹1,020/unit.
+#### Scenario 3: Bounded Consensus & Autonomous M2M Mandate Settlement (`Auto Settle ON`)
+1. Ensure the **"Instant M2M Settlement"** checkbox is checked in the left sidebar (or run `autosettle on` in terminal).
+2. Click the emerald **`run --reasonable`** pill.
+3. Apex Global Procurement (VIP Partner, Trust Score: 65) haggles in realistic, mutually respectful steps.
+4. Upon mutual consensus, the buyer bot immediately invokes `POST /api/agent/settle` with its authorized budget ceiling.
+5. **What to observe:**
+   * Zero human clicks required. Razorpay order is captured programmatically.
+   * A cryptographic transaction ID (`pay_ext_m2m_...`) and downloadable B2B Tax Receipt are generated instantly.
+   * The order is committed to the **Buyer Procurement Ledger** and the Merchant Audit Trail.
+
+#### Scenario 4: Bounded Consensus & Manual Razorpay B2B Checkout (`Auto Settle OFF`)
+1. Uncheck the **"Instant M2M Settlement"** checkbox (or run `autosettle off` in terminal).
+2. Run `run --reasonable`.
+3. When consensus is reached, the autonomous agent pauses at the agreement stage.
+4. **What to observe:**
    * A formal **B2B Proforma Commercial Invoice** (`INV-PAR-XXXX`) is issued with an itemized 18% GST breakdown.
    * The **Buyer Settlement Station** appears right below the terminal.
    * Click **Pay with Razorpay** to launch the authentic Razorpay checkout modal (supports NetBanking, UPI, and Test Cards).
 
-#### Scenario 4: Autonomous B2B Pre-Authorized Mandate Settlement (`Auto Settle`)
-1. Ensure the **"Instant M2M Settlement"** checkbox is checked in the left sidebar (or run `autosettle on` in terminal).
-2. Run `run --reasonable`.
-3. Upon reaching mutual consensus, the buyer bot immediately invokes `POST /api/agent/settle` with its authorized budget ceiling.
+#### Scenario 5: Graceful Walkaway & No-Deal Termination (`run --impatient`)
+1. In the left window, click the zinc **`run --impatient`** pill (or type `run --impatient` into the terminal).
+2. Nexus FastTrack Logistics operates under strict, time-sensitive pricing thresholds.
+3. If neither party compromises before the authorized 8 negotiation rounds expire, the walkaway retention protocol activates.
 4. **What to observe:**
-   * Zero human clicks required. Razorpay order is captured programmatically.
-   * A cryptographic transaction ID (`pay_ext_m2m_...`) and downloadable B2B Tax Receipt are generated instantly.
-   * The order is committed to the **Buyer Procurement Ledger** and the Merchant Audit Trail.
+   * If the buyer's budget ceiling cannot meet the merchant's target price, the session terminates cleanly with a **`NO_DEAL`** audit state.
+   * The system logs a graceful exit reason without creating any phantom payment orders, preserving inventory availability.
 
 <a id="a2a-terminal-cli-command-reference"></a>
 <a name="a2a-terminal-cli-command-reference"></a>
