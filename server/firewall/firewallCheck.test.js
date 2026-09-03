@@ -65,11 +65,13 @@ async function runTests() {
     assert(res4.result === 'pass', 'Result should be pass');
     assert(res4.needs_hitl === true, 'Needs HITL should be true within 5%');
 
-    // Test 5: Price outside 5% HITL margin (740 vs 700 floor) -> PASS without HITL
-    console.log('\nTest 5: Price outside 5% HITL margin (740 vs 700 floor)');
-    const res5 = await firewallCheck(740, testSku);
+    // Test 5: Price outside HITL margin -> PASS without HITL
+    const margin = parseFloat(process.env.HITL_MARGIN_PCT) || 0.08;
+    const testPriceAboveMargin = Math.ceil(700 * (1 + margin) + 10);
+    console.log(`\nTest 5: Price outside HITL margin (${testPriceAboveMargin} vs 700 floor with ${margin * 100}% margin)`);
+    const res5 = await firewallCheck(testPriceAboveMargin, testSku);
     assert(res5.result === 'pass', 'Result should be pass');
-    assert(res5.needs_hitl === false, 'Needs HITL should be false above 5% margin');
+    assert(res5.needs_hitl === false, 'Needs HITL should be false above configured margin');
 
     // Test 6: Dynamic Floor Price adjustment simulation
     console.log('\nTest 6: Dynamic floor price mutation test');

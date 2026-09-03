@@ -90,10 +90,14 @@ You MUST respond with valid JSON adhering strictly to this schema:
   "action": "<one of: 'continue', 'deal_closed', 'no_deal'>"
 }`;
 
-  const history = (messages || []).map(m => ({
-    role: m.sender === 'buyer' ? 'user' : 'model',
-    text: `${m.sender.toUpperCase()}: ${m.message}${m.proposed_price ? ` [Price: ₹${m.proposed_price}]` : ''}`
-  }));
+  const history = (messages || []).map(m => {
+    const sender = (m.sender || m.role || 'buyer').toString();
+    const content = m.message || m.text || '';
+    return {
+      role: sender.toLowerCase() === 'buyer' || sender.toLowerCase() === 'user' ? 'user' : 'model',
+      text: `${sender.toUpperCase()}: ${content}${m.proposed_price ? ` [Price: ₹${m.proposed_price}]` : ''}`
+    };
+  });
 
   const rawText = await callGeminiRaw(systemPrompt, history, { temperature: 0.25 });
   const parsed = parseJsonResponse(rawText);
