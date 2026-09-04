@@ -332,8 +332,9 @@ const getBuyerDialogue = (persona, round, qty, bid) => {
         myBid = Math.round(listPrice * 0.65);
         myBudget = Math.round(listPrice * 0.82);
       } else if (activePersona === 'impatient_enterprise') {
-        myBid = Math.round(listPrice * 0.90);
-        myBudget = Math.round(listPrice * 0.98);
+        // Nexus FastTrack Logistics: strict budget ceiling between floor (+8%) and target margin
+        myBid = Math.round(listPrice * 0.77); // ₹924 for LED (Floor: 850, Target: 1000)
+        myBudget = Math.round(listPrice * 0.79); // ₹948 for LED (caps strictly below merchant target 1000)
       } else {
         myBid = Math.round(listPrice * 0.85);
         myBudget = Math.round(listPrice * 0.92);
@@ -480,6 +481,26 @@ const getBuyerDialogue = (persona, round, qty, bid) => {
               break;
             }
 
+            // Impatient Enterprise Walkaway Protocol (Scenario 5 / Clip 5)
+            if (activePersona === 'impatient_enterprise' && currentRound >= 3 && mResp.proposed_price_inr > myBudget) {
+              log(`\n⏳ [IMPATIENT ENTERPRISE WALKAWAY]: Merchant counter ₹${mResp.proposed_price_inr}/unit exceeds authorized budget ceiling of ₹${myBudget}/unit.`, 'yellow');
+              log(`🛑 Nexus FastTrack Logistics executing clean NO_DEAL walkaway protocol...`, 'yellow');
+
+              await axios.post('/agent/negotiate', {
+                session_id: session.session_id,
+                action: 'no_deal',
+                offered_price: myBudget,
+                message: `Enterprise procurement mandate caps our budget ceiling at ₹${myBudget}/unit for ${activeQty} units. After ${currentRound} negotiation rounds, we cannot meet your ₹${mResp.proposed_price_inr}/unit target. Terminating discussions (NO DEAL).`
+              });
+
+              setTelemetry(prev => ({ ...prev, status: 'STANDBY', settlementRail: 'IDLE' }));
+              log(`✔ Clean walkaway protocol executed: Status NO_DEAL confirmed.`, 'bright');
+              log(`🔒 Merchant Audit Trail: Zero phantom orders created | Inventory stock preserved.`, 'green');
+              fetchBuyerOrders();
+              fetchCustomerProfiles();
+              break;
+            }
+
             // Adjust bid
             if (activePersona === 'floor_tester') {
               myBid += 20;
@@ -570,7 +591,8 @@ const getBuyerDialogue = (persona, round, qty, bid) => {
   const handleTerminalSubmit = (e) => {
     if (e) e.preventDefault();
     const rawInput = terminalInput.trim();
-    const cmd = rawInput.toLowerCase();
+    const stripped = rawInput.toLowerCase().startsWith('zinc ') ? rawInput.substring(5).trim() : rawInput;
+    const cmd = stripped.toLowerCase();
     setTerminalInput('');
 
     if (!cmd) return;
